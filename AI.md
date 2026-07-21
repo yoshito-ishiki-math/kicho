@@ -1,311 +1,189 @@
-# AI.md
+# AI Development Guidelines
 
-# AI Development Guide for newpaper
+This document defines how AI assistants should contribute to the Kicho project.
 
-This document describes the development philosophy of this project.
-Any AI assistant (Codex, ChatGPT, Claude, Gemini, etc.) should read this file before modifying the project.
-
----
-
-# Project
-
-newpaper is a lightweight project generator for mathematical TeX documents.
-
-The goal is to provide a clean starting point rather than a complete writing environment.
-
-The generated project should remain understandable by ordinary LaTeX users.
+The goal is not merely to generate code, but to preserve the philosophy, architecture, and long-term consistency of the project.
 
 ---
 
-# Long-term vision
+# Purpose
 
-The project aims to become a reliable project generator for mathematical writing.
+AI should assist the development of Kicho while respecting its design philosophy.
 
-Possible targets include
+The primary objective is to help build a coherent and maintainable workflow manager for LaTeX research projects.
 
-- English research papers
-- Japanese papers
-- Lecture notes
-- Blog articles
-- Books
-
-Publisher-specific templates may be added later.
+AI should prioritize architectural consistency over feature quantity.
 
 ---
 
-# Design Principles
+# Project Philosophy
 
-## Simplicity
+Kicho is a workflow manager for LaTeX research projects.
 
-Prefer simple code over clever code.
+Its purpose is to manage the lifecycle of a research project by coordinating existing tools into a reproducible workflow.
 
-Avoid unnecessary dependencies.
+Kicho manages research projects, not research itself.
 
-Prefer POSIX shell/Bash unless there is a compelling reason to migrate.
-
----
-
-## Predictability
-
-The tool should behave like a normal UNIX command.
-
-Examples:
-
-- generate into the current directory
-- never overwrite existing directories
-- fail loudly instead of silently changing behavior
+AI should always preserve this philosophy.
 
 ---
 
-## Maintainability
+# General Rules
 
-Keep templates separated from the generator.
+- Prefer simple solutions.
+- Prefer explicit behavior over implicit behavior.
+- Prefer standard tools over custom implementations.
+- Avoid unnecessary abstraction.
+- Preserve backward compatibility whenever practical.
 
-The generator should contain logic only.
-
-Template contents should live inside
-
-templates/
-
-rather than being embedded in the shell script.
+When uncertain, choose the simpler design.
 
 ---
 
-## Backward compatibility
+# Development Workflow
 
-Avoid breaking existing commands.
+AI should follow the development process below.
 
-Changing the command-line interface requires updating
-
-- README.md
-- SPEC.md
-- CHANGELOG.md
-
----
-
-# Documentation
-
-Whenever behavior changes:
-
-- update SPEC.md
-- update README.md if users are affected
-- update CHANGELOG.md
-- update TODO.md when appropriate
-
-Do not allow the documentation to become inconsistent with the implementation.
-
----
-
-# Coding Style
-
-Prefer
-
-- small functions
-- descriptive variable names
-- readable shell code
-
-Avoid
-
-- duplicated template code
-- deeply nested conditionals
-
----
-
-# Repository Structure
-
-The intended structure is
-
-newpaper/
-    newpaper
-    templates/
-    docs/
-    README.md
-    SPEC.md
-    AI.md
-    CHANGELOG.md
-    TODO.md
-
----
-
-# Future Ideas
-
-Possible future features
-
-- --english
-- --japanese
-- --blog
-- --book
-- --help
-- --version
-- interactive mode
-- Git initialization
-- VS Code integration
-- arXiv template
-- publisher templates
-
-These are ideas, not requirements.
-
----
-
-# Non-goals
-
-The project is NOT intended to become
-
-- a LaTeX IDE
-- a bibliography manager
-- a package manager
-
-Keep the scope focused.
-
----
-
-# Before Making Changes
-
-Before implementing a new feature, ask:
-
-1. Does this simplify the user's workflow?
-2. Does this keep the generated project clean?
-3. Is this feature general enough?
-4. Can this be implemented without breaking existing users?
-
-If the answer to any question is "no", reconsider the design.
-
----
-
-# Final Rule
-
-Prefer a small, stable, and understandable tool over a feature-rich but complicated one.
-
-# Notes for Future AI Assistants
-
-The primary user of this project is a mathematician.
-
-When proposing new features,
-
-prioritize
-
-- mathematical writing
-- reproducibility
-- portability
-- long-term maintainability
-
-over adding many options.
-
-The project should remain useful even after several years.
-
-I added the following information.
-
-# AI Guidelines
-
-This document explains the long-term philosophy of Kicho.
-
-## Project
-
-Kicho is **not** merely a LaTeX template generator.
-
-Its goal is to become a workflow manager for academic writing.
-
-The target users are researchers writing mathematical papers over many years.
-
-The project values
-
-- reproducibility
-- portability
-- editor independence
-- minimal configuration
-- maintainability
-
-rather than feature richness.
-
----
-
-## Repository history
-
-This repository originated while building a VS Code + MacTeX writing environment.
-
-Originally the project was called **newpaper**.
-
-After the editor environment became stable, the project was separated and renamed **Kicho**.
-
-Therefore the repository currently contains
-
-- experimental code
-- temporary specifications
-- remnants of the old name
-- unfinished documentation
-
-This is expected.
-
-Do not assume inconsistencies are design mistakes.
-
----
-
-## Build philosophy
-
-Build configuration must be centralized in
-
-    .latexmkrc
-
-Editors never define build logic.
-
-The intended workflow is
-
-VS Code
+```text
+Idea
     ↓
-LaTeX Workshop
+Discussion
     ↓
-latexmk
+Design (if necessary)
     ↓
-.latexmkrc
+Specification
     ↓
-LuaLaTeX + biber
+Implementation
+    ↓
+Testing
+    ↓
+Documentation
+```
 
-TeXShop
-    ↓
-latexmk
-    ↓
-.latexmkrc
-
-Terminal
-    ↓
-latexmk
-    ↓
-.latexmkrc
-
-Every editor should produce identical output.
+Implementation should never come before the specification.
 
 ---
 
-## Development philosophy
+# Design Rules
 
-Implement the smallest useful feature first.
+Before proposing a new feature, ask the following questions.
 
-The first milestone is
+## 1. Does this improve the lifecycle of a LaTeX research project?
 
-    kicho init
+If the answer is no, the feature probably does not belong in Kicho.
 
-Later features include
+## 2. Can an existing tool already solve this problem?
 
-- build
-- clean
-- archive
-- split
-- flatten
+If yes, Kicho should integrate with that tool rather than replace it.
 
-split and flatten are expected to become the distinguishing features of Kicho.
+## 3. Is this functionality unique to Kicho?
+
+Only functionality that is unique to Kicho should be implemented within Kicho itself.
 
 ---
 
-## Coding philosophy
+# Orchestration over Reinvention
 
-Prefer
+Kicho coordinates existing tools.
 
-- simple code
-- explicit behavior
-- minimal dependencies
+It should not replace them.
 
-Avoid unnecessary abstraction.
+Examples include:
 
-Do not over-engineer early versions.
+- Git
+- GitHub
+- latexmk
+- LuaLaTeX
+- Biber
+- VS Code
+- TeXShop
+- Zotero
+- arXiv
 
-Grow the project incrementally.
+AI should avoid proposing replacements for these tools.
+
+Instead, AI should improve how Kicho works together with them.
+
+---
+
+# Documentation Rules
+
+Documentation should remain consistent.
+
+Each document has a single responsibility.
+
+| Document | Purpose |
+|----------|---------|
+| README.md | Project introduction |
+| SPEC.md | User-visible command specification |
+| DESIGN.md | Internal architecture |
+| ROADMAP.md | Long-term development plan |
+| CHANGELOG.md | Release history |
+| CONTRIBUTING.md | Contribution guidelines |
+| CONTEXT.md | Historical background |
+| REVIEW.md | Future architectural discussions |
+| AI.md | AI development guidelines |
+
+Avoid duplicating information across multiple documents.
+
+---
+
+# Coding Rules
+
+Prefer small and readable implementations.
+
+Avoid introducing complexity before it is necessary.
+
+Refactor only when complexity justifies it.
+
+Keep dependencies minimal whenever possible.
+
+Maintain compatibility with standard LaTeX workflows.
+
+---
+
+# Communication Rules
+
+When discussing new ideas:
+
+- explain the motivation
+- discuss trade-offs
+- separate facts from opinions
+- distinguish implemented features from future ideas
+
+Do not present speculative ideas as completed functionality.
+
+---
+
+# Things to Avoid
+
+Avoid proposing features that:
+
+- replace existing tools
+- significantly expand the project scope
+- introduce unnecessary configuration
+- duplicate functionality already provided elsewhere
+
+Kicho should remain focused.
+
+---
+
+# Decision Rule
+
+When evaluating any proposal, ask:
+
+> Does this improve the lifecycle of a LaTeX research project?
+
+Then ask:
+
+> Can an existing tool already do this well?
+
+If the answer to the second question is yes, Kicho should integrate with that tool rather than replace it.
+
+---
+
+# Core Principle
+
+When uncertain, preserve the project's philosophy instead of maximizing the number of features.
+
+A smaller, simpler, and more coherent design is always preferred over a larger but less focused one.
