@@ -1,0 +1,365 @@
+# Kicho Design Review
+
+This document records architectural concerns, design discussions, and future review items.
+
+Unlike the roadmap, the items in this document are not necessarily scheduled work.
+Instead, they are topics that should be reconsidered as Kicho evolves.
+
+---
+
+# 1. Documentation Organization
+
+Current documentation:
+
+- README.md
+- SPEC.md
+- DESIGN.md
+- TODO.md
+- ROADMAP.md
+- CHANGELOG.md
+- CONTRIBUTING.md
+- AI.md
+- CONTEXT.md
+
+## Review
+
+The number of documentation files is gradually increasing.
+
+The responsibilities of each document should remain clearly separated.
+
+In particular, reconsider whether both
+
+- TODO.md
+- ROADMAP.md
+
+are necessary.
+
+Possible future direction:
+
+- ROADMAP.md
+  - Long-term project planning
+
+- GitHub Issues
+  - Short-term implementation tasks
+
+Avoid maintaining the same task in multiple places.
+
+---
+
+# 2. AI.md vs CONTEXT.md
+
+The boundary between these documents should remain clear.
+
+## AI.md
+
+Should contain:
+
+- AI development rules
+- documentation rules
+- coding principles
+- AI-specific instructions
+
+## CONTEXT.md
+
+Should contain:
+
+- project history
+- motivations
+- design background
+- historical decisions
+
+Avoid duplicating information.
+
+---
+
+# 3. GitHub Issue Usage
+
+As development grows, GitHub Issues should become the primary task tracker.
+
+Possible division:
+
+ROADMAP
+
+- long-term goals
+
+GitHub Issues
+
+- concrete implementation tasks
+
+Avoid maintaining the same task in multiple places.
+
+---
+
+# 4. Template Architecture
+
+Current template layout:
+
+```text
+templates/
+    english-paper/
+```
+
+Possible future layout:
+
+```text
+templates/
+    english-paper/
+    japanese-paper/
+    article/
+    book/
+    beamer/
+```
+
+Before expanding templates, define:
+
+- template interface
+- required files
+- optional files
+- version compatibility
+
+---
+
+# 5. Command Architecture
+
+Current structure:
+
+```text
+bin/
+    kicho
+```
+
+As more commands are implemented,
+
+- doctor
+- check
+- split
+- flatten
+- archive
+- submit
+
+the shell script may become too large.
+
+Possible future architecture:
+
+```text
+bin/
+    kicho
+
+lib/
+    build.sh
+    clean.sh
+    doctor.sh
+    check.sh
+    split.sh
+    flatten.sh
+    archive.sh
+    submit.sh
+```
+
+Migration should occur only when complexity justifies it.
+
+---
+
+# 6. Automated Testing
+
+Current testing is manual.
+
+Future work should include automated CLI tests.
+
+Examples:
+
+- project initialization
+- build
+- clean
+- error handling
+- exit status
+
+Testing should become part of the release process.
+
+---
+
+# 7. Template Versioning
+
+As templates evolve, older projects should remain understandable.
+
+Possible future concepts:
+
+- template version
+- migration support
+- backward compatibility
+
+The exact mechanism is undecided.
+
+---
+
+# 8. Project Scope
+
+Kicho's boundaries should remain well defined.
+
+Questions to revisit:
+
+Should Kicho interact with:
+
+- Git
+- GitHub
+- arXiv
+- Zotero
+- VS Code
+- TeXShop
+
+Kicho should avoid becoming an all-purpose research manager.
+
+---
+
+# 9. Long-Term Philosophy
+
+Kicho should remain:
+
+- lightweight
+- reproducible
+- compatible with standard LaTeX tools
+
+Kicho should coordinate existing tools rather than replace them.
+
+Future features should always be evaluated against these principles before implementation.
+
+---
+
+# 10. Release Workflow
+
+A typical feature should follow this development process:
+
+```text
+Issue
+   ↓
+Design
+   ↓
+Specification
+   ↓
+Implementation
+   ↓
+Testing
+   ↓
+Documentation
+   ↓
+Release
+```
+
+This workflow should remain consistent throughout the project.
+
+---
+
+# 11. Documentation Policy
+
+Each document has a single responsibility.
+
+| Document | Purpose |
+|----------|---------|
+| README.md | Introduction for users |
+| SPEC.md | User-visible CLI specification |
+| DESIGN.md | Internal architecture |
+| ROADMAP.md | Long-term development plan |
+| CHANGELOG.md | Release history |
+| CONTRIBUTING.md | Contribution guidelines |
+| AI.md | Rules for AI-assisted development |
+| CONTEXT.md | Historical background and design rationale |
+| REVIEW.md | Architectural concerns and future design discussions |
+
+Documentation should avoid unnecessary duplication.
+
+---
+
+# Review Policy
+
+Items in this document are discussion topics rather than commitments.
+
+They are intentionally separated from the implementation roadmap.
+
+As Kicho evolves, completed discussions should either:
+
+- become part of the official design,
+- become part of the specification,
+- become implementation tasks,
+- or be removed if no longer relevant.
+
+This document exists to capture architectural ideas before they become decisions.
+私から1つだけ提案
+ここまでドキュメントが充実すると、REVIEW.md は「今後考えること」を集める場所として非常に便利です。
+一方で、リポジトリ直下のファイル数が増えてきました。
+私は将来的に
+docs/
+├── SPEC.md
+├── DESIGN.md
+├── ROADMAP.md
+├── REVIEW.md
+├── AI.md
+└── CONTEXT.md
+のように docs/ ディレクトリへ整理するのも良いと思っています。ただ、今はまだ移動しなくて構いません。利用者が少ない段階では、リポジトリ直下に置いてある方が見つけやすいからです。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+最速
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ソース
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    To pick up a draggable item, press the space bar.
+    While dragging, use the arrow keys to move the item.
+    Press space again to drop the item in its new position, or press escape to cancel.
