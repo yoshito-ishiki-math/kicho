@@ -1,26 +1,103 @@
 # Kicho
 
-Kicho is a workflow manager for academic writing.
+Kicho is a command-line tool for managing LaTeX research projects.
 
-It is designed primarily for mathematical research papers and long-term academic projects.
+Current version focuses on creating a clean project template.
 
-Unlike ordinary LaTeX template generators, Kicho aims to support the entire writing workflow.
+Future versions will support project management tasks such as building, splitting, flattening, archiving, and submission preparation.
 
-Current goals include
+---
 
-- project initialization
-- reproducible build environment
-- editor-independent compilation
-- project organization
-- archive generation
-- source splitting and flattening
+## Features
 
-Current status
+Current
 
-Kicho is an early-stage prototype.
+- Create a new paper project
 
-The project originated while building a comfortable VS Code + MacTeX writing environment.
+Planned
 
-It was formerly called **newpaper**, and is currently being redesigned as **Kicho**.
+- Build project
+- Split large documents
+- Flatten for journal submission
+- Archive projects
+- Submission workflow
 
-Many parts of the implementation and documentation are still under development.
+---
+
+## Installation
+
+```bash
+git clone https://github.com/yoshito-ishiki-math/kicho.git
+cd kicho
+
+chmod +x bin/kicho
+```
+
+---
+
+## Quick Start
+
+Create a paper.
+
+```bash
+./bin/kicho init MyPaper
+```
+
+Move into the directory.
+
+```bash
+cd MyPaper
+```
+
+Compile.
+
+```bash
+latexmk main.tex
+```
+
+---
+
+## Generated project
+
+```
+MyPaper/
+├── main.tex
+├── preamble/
+├── sections/
+├── bib/
+├── figures/
+├── build/
+└── .latexmkrc
+```
+
+---
+
+## Philosophy
+
+Kicho aims to provide a complete workflow for mathematical writing.
+
+Instead of being only a LaTeX template, Kicho intends to manage the entire lifecycle of a paper:
+
+```
+init
+↓
+write
+↓
+build
+↓
+split
+↓
+flatten
+↓
+archive
+↓
+submit
+```
+
+The project emphasizes simplicity, reproducibility, and compatibility with standard LaTeX workflows.
+
+---
+
+## License
+
+MIT License
