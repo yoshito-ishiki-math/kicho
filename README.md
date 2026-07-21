@@ -1,26 +1,30 @@
 # Kicho
 
-Kicho is a command-line tool for managing LaTeX research projects.
+Kicho is a command-line workflow manager for LaTeX research projects.
 
-Current version focuses on creating a clean project template.
+It aims to support the entire lifecycle of mathematical writing, from project creation to journal submission, while remaining compatible with standard LaTeX workflows.
 
-Future versions will support project management tasks such as building, splitting, flattening, archiving, and submission preparation.
+The current version provides project initialization together with basic project management commands such as project building and cleaning.
 
 ---
 
 ## Features
 
-Current
+### Current
 
-- Create a new paper project
+- Create a new LaTeX research project
+- Build the project using `latexmk`
+- Clean generated build files
+- Built-in help (`--help`)
+- Version information (`--version`)
 
-Planned
+### Planned
 
-- Build project
 - Split large documents
-- Flatten for journal submission
-- Archive projects
+- Flatten projects for journal submission
+- Archive completed projects
 - Submission workflow
+- Project management utilities
 
 ---
 
@@ -37,27 +41,39 @@ chmod +x bin/kicho
 
 ## Quick Start
 
-Create a paper.
+Create a new project.
 
 ```bash
 ./bin/kicho init MyPaper
 ```
 
-Move into the directory.
+Move into the project directory.
 
 ```bash
 cd MyPaper
 ```
 
-Compile.
+Build the project.
 
 ```bash
-latexmk main.tex
+../bin/kicho build
+```
+
+Clean generated files.
+
+```bash
+../bin/kicho clean
+```
+
+Show available commands.
+
+```bash
+../bin/kicho --help
 ```
 
 ---
 
-## Generated project
+## Generated Project Structure
 
 ```
 MyPaper/
@@ -72,29 +88,37 @@ MyPaper/
 
 ---
 
-## Philosophy
+## Workflow
 
-Kicho aims to provide a complete workflow for mathematical writing.
-
-Instead of being only a LaTeX template, Kicho intends to manage the entire lifecycle of a paper:
+Kicho is designed around the following workflow.
 
 ```
 init
-↓
+ ↓
 write
-↓
+ ↓
 build
-↓
+ ↓
 split
-↓
+ ↓
 flatten
-↓
+ ↓
 archive
-↓
+ ↓
 submit
 ```
 
-The project emphasizes simplicity, reproducibility, and compatibility with standard LaTeX workflows.
+Current releases implement the first stage of this workflow, with additional functionality planned for future versions.
+
+---
+
+## Philosophy
+
+Kicho is not simply a LaTeX template.
+
+Its goal is to provide a reproducible and lightweight workflow for mathematical writing while remaining close to standard LaTeX tools such as `latexmk`, LuaLaTeX, and Biber.
+
+Rather than replacing existing tools, Kicho integrates them into a consistent project workflow.
 
 ---
 

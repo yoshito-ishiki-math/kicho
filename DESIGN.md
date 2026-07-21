@@ -1,204 +1,574 @@
-# DESIGN.md
+# Kicho Design
 
-# Kicho Design Philosophy
+This document describes the internal design, architecture, and development principles of Kicho.
 
-## Purpose
+The README introduces Kicho to users.
 
-Kicho is not merely a LaTeX template generator.
+The specification defines the command-line interface and user-visible behavior.
 
-Its long-term goal is to become a workflow manager for academic writing.
-
-The primary target users are researchers, especially those writing mathematical papers over many years.
-
-The project emphasizes reproducibility, maintainability, portability, and simplicity rather than providing a large number of features.
+This document explains how Kicho is structured internally and why those design choices are used.
 
 ---
 
-# Project History
+## Design Goals
 
-Kicho originated while building a comfortable LaTeX writing environment based on VS Code and MacTeX.
+Kicho is designed as a lightweight workflow manager for LaTeX research projects.
 
-The project was initially developed under the name **newpaper**.
+Its primary goals are:
 
-After the editor environment became sufficiently stable, the project was separated into an independent repository and renamed **Kicho**.
+- support the lifecycle of a mathematical paper
+- remain compatible with standard LaTeX tools
+- keep simple projects simple
+- avoid unnecessary project-specific machinery
+- provide reproducible commands for common workflows
+- remain understandable enough to maintain without a large framework
 
-As a result, the repository currently contains remnants of the old implementation, temporary specifications, and experimental code.
-
-These inconsistencies should be understood as artifacts of an ongoing transition rather than design mistakes.
-
----
-
-# Design Principles
-
-## Editor Independence
-
-Kicho must not depend on a particular editor.
-
-The supported editors include
-
-* VS Code
-* TeXShop
-* Terminal
-* Future editors
-
-All editors should behave identically.
-
-Editors are responsible only for editing, previewing PDFs, SyncTeX, and optional automatic compilation.
-
-The build system itself must remain independent of the editor.
+Kicho should coordinate existing tools rather than replace them.
 
 ---
 
-## Single Source of Build Configuration
+## Workflow Model
 
-The build configuration is centralized in
+Kicho is organized around the lifecycle of a research paper.
 
-```
-.latexmkrc
+```text
+init
+ ↓
+write
+ ↓
+build
+ ↓
+split
+ ↓
+flatten
+ ↓
+archive
+ ↓
+submit
 ```
 
-No editor should define its own build logic.
+Not every project must use every stage.
 
-The intended build flow is
+In particular, Kicho should not force a multi-file document structure on small papers.
 
-VS Code
-↓
-LaTeX Workshop
-↓
+A user may write a complete paper in `main.tex` and only split the document when it becomes useful.
+
+---
+
+## Command Architecture
+
+Kicho uses a subcommand-oriented command-line interface.
+
+```text
+kicho <command> [arguments] [options]
+```
+
+Examples:
+
+```bash
+kicho init MyPaper
+kicho build
+kicho clean
+```
+
+Each major user operation should normally correspond to one subcommand.
+
+Global options should be limited to Kicho-wide behavior such as:
+
+```bash
+kicho --help
+kicho --version
+```
+
+This design is intended to remain stable as new commands are introduced.
+
+---
+
+## Current Repository Structure
+
+The Kicho repository currently uses a simple structure similar to:
+
+```text
+kicho/
+├── bin/
+│   └── kicho
+├── templates/
+├── README.md
+├── SPEC.md
+├── DESIGN.md
+├── TODO.md
+├── AI.md
+└── LICENSE
+```
+
+### `bin/`
+
+Contains the executable command-line interface.
+
+The current implementation is centered on:
+
+```text
+bin/kicho
+```
+
+This script is responsible for:
+
+- parsing commands
+- validating arguments
+- displaying help and version information
+- reporting errors
+- dispatching subcommands
+- invoking external tools such as `latexmk`
+
+### `templates/`
+
+Contains files copied by:
+
+```bash
+kicho init PROJECT
+```
+
+The template defines the initial structure of a Kicho project.
+
+Documentation files belong to the repository itself and must not be copied into every generated paper project unless there is a specific reason.
+
+---
+
+## Generated Project Structure
+
+A newly created Kicho project currently has a structure similar to:
+
+```text
+PROJECT/
+├── main.tex
+├── preamble/
+├── sections/
+├── bib/
+├── figures/
+├── build/
+└── .latexmkrc
+```
+
+### `main.tex`
+
+The default main document.
+
+The current template assumes `main.tex`, but the main document should become configurable in a future release.
+
+### `preamble/`
+
+Contains reusable preamble fragments or local style definitions.
+
+The directory may remain empty in simple projects.
+
+### `sections/`
+
+Contains split document sections when multi-file organization becomes useful.
+
+Kicho should not require users to move content into this directory immediately.
+
+### `bib/`
+
+Contains bibliography databases and related files.
+
+### `figures/`
+
+Contains figures, diagrams, and other visual assets.
+
+### `build/`
+
+Contains generated compilation files.
+
+This directory is disposable and may be deleted by:
+
+```bash
+kicho clean
+```
+
+### `.latexmkrc`
+
+Contains the project's LaTeX build configuration.
+
+In the current design, `.latexmkrc` is both:
+
+- the build configuration used by `latexmk`
+- the minimal marker used to identify a Kicho project
+
+This is intentionally simple and may change later.
+
+---
+
+## Build Architecture
+
+Kicho delegates compilation to the standard LaTeX toolchain.
+
+```text
+kicho build
+    ↓
 latexmk
-↓
+    ↓
 .latexmkrc
-↓
-LuaLaTeX + biber
+    ↓
+LuaLaTeX
+    ↓
+Biber
+```
 
-TeXShop
-↓
-latexmk
-↓
+Kicho should not directly reproduce or override configuration already expressed in `.latexmkrc`.
+
+The build command should remain a thin coordination layer.
+
+This provides several benefits:
+
+- users can still run `latexmk` directly
+- editor integrations remain usable
+- Kicho does not become a custom build system
+- the project remains compatible with ordinary LaTeX environments
+- build behavior is inspectable outside Kicho
+
+---
+
+## Clean Architecture
+
+The clean command currently performs two operations:
+
+```text
+latexmk -C
+```
+
+followed by removal of:
+
+```text
+build/
+```
+
+The clean command must only remove generated files.
+
+It must not remove:
+
+- source files
+- bibliography databases
+- figures
+- preamble files
+- project configuration
+- manually created research notes
+
+Generated and source files should remain clearly separated.
+
+---
+
+## Project Detection
+
+The current implementation considers a directory to be a Kicho project when it contains:
+
+```text
 .latexmkrc
+```
 
-Terminal
-↓
-latexmk
-↓
-.latexmkrc
+This is a pragmatic temporary rule.
 
-Every supported environment should produce identical output.
+It avoids introducing configuration machinery before Kicho needs it.
 
----
+However, `.latexmkrc` is fundamentally a LaTeX build configuration file, not a Kicho metadata file.
 
-## Workflow Before Features
+A future release may introduce:
 
-Kicho is designed around the research workflow rather than around LaTeX itself.
+```text
+kicho.toml
+```
 
-The intended workflow is
+A dedicated configuration file could explicitly identify a Kicho project and store information such as:
 
-kicho init
+```toml
+[project]
+main = "main.tex"
 
-↓
+[build]
+directory = "build"
 
-Write the paper
+[archive]
+directory = "archive"
+```
 
-↓
-
-Optionally split the source
-
-↓
-
-Flatten before submission
-
-↓
-
-Archive the project
-
-The workflow should remain simple and reproducible.
+The configuration format must not be introduced until Kicho has settings that justify it.
 
 ---
 
-## Single-file and Multi-file Projects
+## Configuration Principles
 
-Kicho does not force users to choose between single-file and multi-file projects.
+Kicho should avoid duplicating configuration owned by existing tools.
 
-Both are first-class workflows.
+Examples:
 
-The user should be free to switch between them whenever appropriate.
+- LuaLaTeX options belong in `.latexmkrc`
+- bibliography settings belong in LaTeX or Biber configuration
+- editor-specific settings belong in the editor
+- Kicho workflow settings may eventually belong in `kicho.toml`
 
-The commands
+A Kicho-specific setting should only be added when it describes behavior that is genuinely owned by Kicho.
 
-* split
-* flatten
+Possible future Kicho settings include:
 
-exist to support workflow transitions rather than to enforce one project structure.
-
-They should be designed as practical tools instead of mathematically exact inverse operations.
-
----
-
-## Incremental Development
-
-Kicho should grow gradually.
-
-The first release should implement only the smallest useful feature.
-
-Current priority:
-
-1. kicho init
-
-Later additions:
-
-* build
-* clean
-* archive
-* split
-* flatten
-
-Advanced functionality should be implemented only after the core workflow becomes stable.
+- main TeX file
+- project name
+- archive destination
+- flatten behavior
+- submission profile
+- ignored files
+- generated package contents
 
 ---
 
-## Simplicity
+## Single-File-First Principle
 
-Prefer
+Kicho follows a single-file-first philosophy.
 
-* simple implementations
-* explicit behavior
-* readable code
-* minimal dependencies
+A new project should be usable immediately with:
 
-Avoid unnecessary abstraction.
+```text
+main.tex
+```
 
-Avoid implementing future ideas before they become necessary.
+Users should not be forced to begin with many files or directories.
 
----
+The `sections/` directory exists as an option, not as a requirement.
 
-## Reproducibility
+The future `split` command should help users transition from a large single file to a multi-file structure when needed.
 
-A generated project should remain usable for many years.
-
-Users should be able to clone a repository and obtain identical build results regardless of editor.
-
-Project structure should be predictable and easy to understand.
+The future `flatten` command should reverse that structure for journal submission or portability.
 
 ---
 
-## Scope
+## External Tool Policy
 
-Kicho focuses on managing the writing workflow.
+Kicho may rely on standard external tools when they already solve the relevant problem well.
 
-It is not intended to become a general-purpose IDE, package manager, or bibliography manager.
+Current dependency:
 
-External tools such as Git, latexmk, biber, and editors should be integrated rather than replaced.
+- `latexmk`
+
+Expected LaTeX toolchain:
+
+- LuaLaTeX
+- Biber
+
+Before invoking an external tool, Kicho should check that it is available and provide a clear error if it is missing.
+
+Kicho should preserve the exit status of underlying tools where practical.
 
 ---
 
-## Long-Term Vision
+## Error-Handling Design
 
-The long-term vision is to provide a lightweight but reliable environment for academic writing.
+Errors should be:
 
-The project should help researchers spend less time configuring tools and more time doing research.
+- concise
+- actionable
+- written to standard error
+- free of unnecessary implementation details
 
-Every new feature should be evaluated according to one question:
+Preferred style:
 
-> Does this improve the workflow of writing and maintaining research papers?
+```text
+Error: latexmk is not installed or is not available through PATH.
+```
 
-If the answer is no, the feature probably does not belong in Kicho.
+When usage is relevant, Kicho should suggest:
+
+```text
+Run 'kicho --help' for usage.
+```
+
+Commands should fail early before modifying files whenever possible.
+
+---
+
+## File-Safety Principles
+
+Commands that modify files must follow conservative behavior.
+
+Kicho should:
+
+- avoid overwriting existing files without explicit permission
+- fail when an initialization destination already exists
+- avoid deleting files outside known generated directories
+- preserve source files during cleaning
+- make destructive behavior visible
+- prefer reversible operations where practical
+
+Future commands such as `split`, `flatten`, and `archive` require especially careful file-safety design.
+
+---
+
+## Future Command Design
+
+### `split`
+
+The `split` command may convert a large single-file document into a multi-file project.
+
+Potential responsibilities include:
+
+- identifying major document sections
+- moving section contents into separate files
+- inserting `\input` statements
+- preserving compilability
+- creating backups before modification
+
+The exact behavior is not yet specified.
+
+### `flatten`
+
+The `flatten` command may produce a submission-ready single-file document.
+
+Potential responsibilities include:
+
+- resolving `\input` and `\include`
+- copying required bibliography files
+- collecting figures
+- preparing a self-contained submission directory
+- avoiding editor-specific or local-only dependencies
+
+Flattening should produce new output rather than destructively rewriting the working project.
+
+### `archive`
+
+The `archive` command may create a reproducible snapshot of a project.
+
+Potential archive contents include:
+
+- source files
+- bibliography files
+- figures
+- configuration
+- compiled PDF
+- version metadata
+
+Generated temporary files should normally be excluded.
+
+### `submit`
+
+The `submit` command may prepare files for journal or preprint submission.
+
+It should be built on top of lower-level operations such as:
+
+```text
+build
+flatten
+archive
+```
+
+The command should not directly upload files until submission behavior has been carefully designed.
+
+---
+
+## Implementation Strategy
+
+The current implementation uses a shell script.
+
+This is appropriate while Kicho remains small because it provides:
+
+- direct access to system commands
+- minimal dependencies
+- fast development
+- transparent behavior
+
+The implementation should remain in shell while:
+
+- command parsing remains simple
+- file transformations remain manageable
+- portability requirements remain limited
+- maintenance remains understandable
+
+A migration to another language should only occur when shell becomes a genuine limitation.
+
+Possible future reasons for migration include:
+
+- complex configuration parsing
+- substantial TeX source transformation
+- cross-platform support
+- structured error reporting
+- extensive automated testing
+- package distribution requirements
+
+The language choice should follow project needs rather than fashion.
+
+---
+
+## Documentation Architecture
+
+Kicho documentation is divided by responsibility.
+
+### `README.md`
+
+For first-time users.
+
+Contains:
+
+- project overview
+- installation
+- quick start
+- implemented features
+- project philosophy
+
+### `SPEC.md`
+
+Defines user-visible behavior.
+
+Contains:
+
+- commands
+- arguments
+- options
+- exit behavior
+- project detection
+- compatibility promises
+
+### `DESIGN.md`
+
+Explains internal architecture and rationale.
+
+### `TODO.md`
+
+Tracks implementation priorities and unfinished work.
+
+### `AI.md`
+
+Defines rules for AI-assisted development.
+
+These roles should remain separate to avoid turning the README into a complete internal manual.
+
+---
+
+## Development Principles
+
+Kicho development should follow these principles:
+
+1. Implement the smallest coherent feature first.
+2. Keep the command-line interface stable.
+3. Preserve compatibility with standard LaTeX tools.
+4. Avoid introducing configuration before it is needed.
+5. Prefer explicit behavior over hidden automation.
+6. Protect user files.
+7. Update the specification when user-visible behavior changes.
+8. Update the design document when architecture changes.
+9. Distinguish clearly between implemented and planned features.
+10. Do not let documentation describe features that do not exist.
+
+---
+
+## Current Design Decisions
+
+The following decisions are currently accepted:
+
+- Kicho is a workflow manager, not only a template generator.
+- The CLI is organized around subcommands.
+- `latexmk` remains the build engine.
+- `.latexmkrc` remains the current build configuration.
+- `.latexmkrc` is temporarily used for project detection.
+- `main.tex` is the current default main document.
+- The main document should become configurable later.
+- A dedicated `kicho.toml` file may be introduced in the future.
+- New projects should support single-file writing.
+- Multi-file organization should remain optional.
+- Build artifacts belong in `build/`.
+- Cleaning must never remove source files.

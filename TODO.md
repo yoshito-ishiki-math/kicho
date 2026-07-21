@@ -1,33 +1,321 @@
-- [ ] --english
-- [ ] --japanese
-- [ ] --blog
-- [ ] Git初期化
-- [ ] VS Code起動
-- [ ] arXivテンプレート
-## Rename
+# Kicho Roadmap
 
-- [ ] Rename the project from `newpaper` to `Kicho`.
-- [ ] Rename the CLI command from `newpaper` to `kicho`.
-- [ ] Update the README and documentation to reflect the new name.
-- [ ] Explain that the name **Kicho** comes from the Japanese word **記帳** ("keeping a written record").
+This document tracks the development roadmap of Kicho.
 
-## Workflow
+Implemented features, planned work, and long-term ideas must be clearly separated.
 
-- [ ] Implement `kicho init`.
-- [ ] Implement `kicho build`.
-- [ ] Implement `kicho clean`.
-- [ ] Implement `kicho archive`.
+---
 
-## Source organization
+## Current Status
 
-- [ ] Implement `kicho split` to split a single-file manuscript into section-based files.
-- [ ] Implement `kicho flatten` to recursively expand local `\input` files into a single TeX source.
-- [ ] Document the design philosophy that **split** and **flatten** are complementary workflow tools rather than exact inverse operations.
-- [ ] Keep both single-file and multi-file workflows as first-class citizens.
+The following features are currently implemented:
 
-## Template
+- [x] Project initialization with `kicho init`
+- [x] Project building with `kicho build`
+- [x] Build cleanup with `kicho clean`
+- [x] Command-line help with `--help` and `-h`
+- [x] Version output with `--version` and `-v`
+- [x] Basic error handling
+- [x] Unknown-command handling
+- [x] Project detection using `.latexmkrc`
+- [x] README documentation
+- [x] CLI specification in `SPEC.md`
+- [x] Internal design documentation in `DESIGN.md`
 
-- [ ] Use `amsart` as the default document class.
-- [ ] Include a standard mathematical paper template (`packages.tex`, `macros.tex`, `theorem.tex`).
-- [ ] Provide compatibility macros for legacy notation (e.g. `\yonn`, `\nn`, etc.).
-- [ ] Include AMS metadata (`\subjclass`, `\keywords`, `\thanks`, `\address`, `\email`) in the default template.
+---
+
+## v0.1 — Basic CLI and Documentation
+
+Goal: establish a usable command-line interface and a documented project structure.
+
+### Completed
+
+- [x] Implement `init`
+- [x] Implement `build`
+- [x] Implement `clean`
+- [x] Add help output
+- [x] Add version output
+- [x] Add basic error messages
+- [x] Add command dispatch
+- [x] Document installation and quick start
+- [x] Document the current CLI
+- [x] Document the internal architecture
+
+### Remaining
+
+- [ ] Review all documentation for consistency
+- [ ] Create or update `AI.md`
+- [ ] Add basic automated CLI tests
+- [ ] Verify behavior when required external commands are missing
+- [ ] Verify behavior outside a Kicho project
+- [ ] Decide the versioning and release procedure
+- [ ] Tag the first documented release
+
+---
+
+## v0.2 — Diagnostics and Project Validation
+
+Goal: help users diagnose their LaTeX environment and validate project structure.
+
+### `doctor`
+
+- [ ] Design `kicho doctor`
+- [ ] Check whether `latexmk` is available
+- [ ] Check whether LuaLaTeX is available
+- [ ] Check whether Biber is available
+- [ ] Report missing external commands clearly
+- [ ] Check whether the current directory contains `.latexmkrc`
+- [ ] Check whether the configured main TeX file exists
+- [ ] Produce a concise diagnostic summary
+- [ ] Define exit-status behavior
+
+### `check`
+
+- [ ] Design `kicho check`
+- [ ] Validate the current project structure
+- [ ] Detect missing source files
+- [ ] Detect missing bibliography directories or files
+- [ ] Detect invalid build configuration
+- [ ] Distinguish warnings from errors
+- [ ] Define machine-readable behavior for future automation
+
+### Testing
+
+- [ ] Add tests for successful diagnostics
+- [ ] Add tests for missing tools
+- [ ] Add tests for malformed projects
+- [ ] Add tests for exit codes and standard-error output
+
+---
+
+## v0.3 — Document Structure Tools
+
+Goal: support transitions between single-file and multi-file LaTeX projects.
+
+### `split`
+
+- [ ] Define the exact behavior of `kicho split`
+- [ ] Decide which section commands are supported
+- [ ] Decide how output filenames are generated
+- [ ] Insert `\input` commands safely
+- [ ] Preserve document order
+- [ ] Create a backup before modifying source files
+- [ ] Avoid overwriting existing section files
+- [ ] Verify that the resulting project still builds
+- [ ] Decide how comments and custom macros are preserved
+
+### `flatten`
+
+- [ ] Define the exact behavior of `kicho flatten`
+- [ ] Resolve `\input` commands
+- [ ] Resolve `\include` commands
+- [ ] Preserve comments where practical
+- [ ] Collect required bibliography files
+- [ ] Collect required figures
+- [ ] Create a separate submission directory
+- [ ] Avoid modifying the working project
+- [ ] Verify that flattened output builds independently
+
+---
+
+## v0.4 — Archiving and Submission Preparation
+
+Goal: support reproducible project snapshots and submission-ready packages.
+
+### `archive`
+
+- [ ] Define archive contents
+- [ ] Include source files
+- [ ] Include bibliography files
+- [ ] Include figures
+- [ ] Include the compiled PDF
+- [ ] Include relevant configuration files
+- [ ] Exclude temporary build artifacts
+- [ ] Add version and timestamp metadata
+- [ ] Define archive naming rules
+- [ ] Produce a compressed archive
+
+### `submit`
+
+- [ ] Define the scope of `kicho submit`
+- [ ] Build the current project before packaging
+- [ ] Flatten the project when required
+- [ ] Collect submission files
+- [ ] Validate the generated package
+- [ ] Support submission profiles in the future
+- [ ] Avoid automatic uploading in the initial implementation
+- [ ] Produce a clear summary of generated files
+
+---
+
+## Future Configuration
+
+The current implementation uses `.latexmkrc` for build configuration and project detection.
+
+Possible future work:
+
+- [ ] Decide whether to introduce `kicho.toml`
+- [ ] Make the main TeX document configurable
+- [ ] Make the build directory configurable
+- [ ] Store project metadata
+- [ ] Store archive settings
+- [ ] Store flatten settings
+- [ ] Store submission profiles
+- [ ] Define configuration precedence
+- [ ] Add configuration validation
+- [ ] Add a configuration migration policy
+
+A dedicated configuration file should only be introduced when Kicho has enough Kicho-specific settings to justify it.
+
+---
+
+## CLI Improvements
+
+- [ ] Support command-specific help such as `kicho build --help`
+- [ ] Improve error-message consistency
+- [ ] Standardize exit codes
+- [ ] Add verbose output
+- [ ] Add quiet output
+- [ ] Consider colored terminal output
+- [ ] Detect whether standard output is connected to a terminal
+- [ ] Add shell-completion support
+- [ ] Consider `kicho help COMMAND`
+
+---
+
+## Safety and Reliability
+
+- [ ] Prevent accidental overwriting
+- [ ] Require backups for destructive transformations
+- [ ] Ensure `clean` never deletes source files
+- [ ] Ensure generated output stays inside known directories
+- [ ] Handle filenames containing spaces
+- [ ] Handle interrupted commands safely
+- [ ] Test paths containing non-ASCII characters
+- [ ] Add dry-run support for file-transforming commands
+- [ ] Document destructive behavior explicitly
+
+---
+
+## Compatibility
+
+- [ ] Test with current macOS
+- [ ] Test with MacTeX
+- [ ] Test with Visual Studio Code and LaTeX Workshop
+- [ ] Test direct `latexmk` compatibility
+- [ ] Test TeXShop workflows
+- [ ] Investigate Linux support
+- [ ] Investigate Windows support
+- [ ] Define the minimum supported shell environment
+- [ ] Define required versions of external tools
+
+---
+
+## Distribution
+
+- [ ] Decide how users should install Kicho
+- [ ] Consider adding Kicho to the user's `PATH`
+- [ ] Provide an installation script only if justified
+- [ ] Consider Homebrew distribution
+- [ ] Decide whether shell-script distribution remains sufficient
+- [ ] Define upgrade instructions
+- [ ] Define uninstall instructions
+- [ ] Create release notes
+
+---
+
+## Implementation Evolution
+
+The current implementation is a shell script.
+
+Possible future work:
+
+- [ ] Keep command functions small and independent
+- [ ] Separate command dispatch from command implementation
+- [ ] Add reusable error and logging functions
+- [ ] Add a test harness
+- [ ] Evaluate shell limitations as features grow
+- [ ] Consider another implementation language only when necessary
+- [ ] Preserve the existing CLI if the implementation language changes
+
+Potential reasons for migration include:
+
+- complex TOML parsing
+- substantial TeX source transformations
+- cross-platform distribution
+- structured testing
+- increasingly complex error handling
+
+---
+
+## Documentation
+
+- [x] Create `README.md`
+- [x] Create `SPEC.md`
+- [x] Create `DESIGN.md`
+- [ ] Create or revise `AI.md`
+- [ ] Keep implemented and planned features separate
+- [ ] Add command examples as commands are implemented
+- [ ] Add troubleshooting documentation
+- [ ] Add contribution guidelines if external contributions begin
+- [ ] Add release notes
+- [ ] Review documentation before each release
+
+---
+
+## Long-Term Ideas
+
+These ideas are not commitments.
+
+- [ ] Journal-specific submission profiles
+- [ ] arXiv preparation workflow
+- [ ] Project templates for different document types
+- [ ] Bibliography validation
+- [ ] Missing-reference detection
+- [ ] Figure-file validation
+- [ ] Reproducible release bundles
+- [ ] Project metadata summaries
+- [ ] Integration with Git
+- [ ] Integration with editors
+- [ ] Migration tools for existing LaTeX projects
+- [ ] A plugin or extension system
+
+---
+
+## Development Order
+
+The current preferred implementation order is:
+
+```text
+documentation consistency
+        ↓
+automated CLI tests
+        ↓
+doctor
+        ↓
+check
+        ↓
+split
+        ↓
+flatten
+        ↓
+archive
+        ↓
+submit
+```
+
+Major new commands should follow this process:
+
+```text
+design
+   ↓
+specification
+   ↓
+implementation
+   ↓
+testing
+   ↓
+documentation
+   ↓
+release
+```
