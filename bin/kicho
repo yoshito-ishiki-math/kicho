@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -e
+
+case "$1" in
+    init)
+        if [ -z "$2" ]; then
+            echo "Usage: kicho init PROJECT"
+            exit 1
+        fi
+
+        if [ -e "$2" ]; then
+            echo "Error: '$2' already exists."
+            exit 1
+        fi
+
+        cp -R "$(dirname "$0")/../templates/english-paper" "$2"
+        echo "Created project: $2"
+        ;;
+
+    *)
+        echo "Usage: kicho init PROJECT"
+        exit 1
+        ;;
+esac

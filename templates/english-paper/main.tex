@@ -1,0 +1,54 @@
+\documentclass[
+  11pt,
+  reqno
+]{amsart}
+
+\input{preamble/packages}
+\input{preamble/macros}
+\input{preamble/theorem}
+
+\title{Paper Title}
+
+\author{Your Name}
+\address{Department of Mathematics, Your University}
+\email{yourname@example.com}
+
+\date{\today}
+
+\subjclass[2020]{Primary 00A00; Secondary 00A00}
+
+\keywords{
+  keyword1,
+  keyword2,
+  keyword3
+}
+
+\thanks{The author was supported by ...}
+
+\begin{document}
+
+\begin{abstract}
+Write the abstract here.
+\end{abstract}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Preliminaries}
+\input{sections/preliminaries}
+
+\section{Main Results}
+\input{sections/main-results}
+
+\appendix
+
+\section{Appendix}
+\input{sections/appendix}
+
+\printbibliography
+
+\end{document}

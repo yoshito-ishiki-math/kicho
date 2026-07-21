@@ -1,0 +1,86 @@
+% ==================================================
+% Generic notation
+% ==================================================
+
+% Number systems
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+
+% Paired delimiters
+% Use starred forms such as \abs*{x} for automatic sizing.
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\DeclarePairedDelimiter{\paren}{(}{)}
+\DeclarePairedDelimiter{\bracket}{[}{]}
+\DeclarePairedDelimiter{\set}{\lbrace}{\rbrace}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+% Operators
+\DeclareMathOperator{\card}{Card}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\Lip}{Lip}
+\DeclareMathOperator{\cl}{cl}
+\DeclareMathOperator{\Int}{Int}
+
+\DeclareMathOperator{\Comp}{Comp}
+\DeclareMathOperator{\Met}{Met}
+\DeclareMathOperator{\UMet}{UMet}
+
+% ==================================================
+% Compatibility aliases from older manuscripts
+% ==================================================
+
+\newcommand{\yonn}{\N}
+\newcommand{\yozz}{\Z}
+\newcommand{\yoqq}{\Q}
+\newcommand{\yorr}{\R}
+\newcommand{\yocc}{\C}
+
+\newcommand{\nn}{\N}
+\newcommand{\zz}{\Z}
+\newcommand{\qq}{\Q}
+\newcommand{\rr}{\R}
+\newcommand{\cc}{\C}
+
+% ==================================================
+% Author-specific notation
+% ==================================================
+
+\newcommand{\yoemph}[1]{\emph{#1}}
+
+\newcommand{\yoomega}{\omega_{0}}
+\newcommand{\yocantorc}{\Gamma}
+\newcommand{\yocantor}[1]{\Gamma(#1)}
+
+\newcommand{\yourysp}{\mathbb{U}}
+\newcommand{\yourydis}{\rho}
+
+\newcommand{\yosub}{\subseteq}
+\newcommand{\yoweight}[1]{w(#1)}
+
+\newcommand{\yocball}{\mathrm{B}}
+\newcommand{\yooball}{\mathcal{U}}
+\newcommand{\yosph}{\mathbb{S}}
+\newcommand{\yohdis}{\mathcal{HD}}
+
+\newcommand{\yochara}{\mathscr}
+\newcommand{\youfin}{\yochara{N}}
+\newcommand{\yofin}{\yochara{F}}
+\newcommand{\yofinq}{\yochara{F}(\Q)}
+
+\newcommand{\yoarsym}{\mathrm{AR}}
+\newcommand{\yoaesym}{\mathrm{AE}}
+\newcommand{\yoanrsym}{\mathrm{ANR}}
+\newcommand{\yoanesym}{\mathrm{ANE}}
+\newcommand{\yoenrsym}{\mathrm{ENR}}
+
+% Compatibility aliases for older functional macros
+\newcommand{\yocomp}[1]{\Comp(#1)}
+\newcommand{\met}[1]{\Met(#1)}
+\newcommand{\ult}[2]{\UMet(#1;#2)}
