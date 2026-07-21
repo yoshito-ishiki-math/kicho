@@ -2,24 +2,79 @@
 
 set -e
 
-case "$1" in
-    init)
-        if [ -z "$2" ]; then
-            echo "Usage: kicho init PROJECT"
-            exit 1
-        fi
+VERSION="0.1.0"
 
-        if [ -e "$2" ]; then
-            echo "Error: '$2' already exists."
-            exit 1
-        fi
+show_help() {
+    cat <<'EOF'
+Kicho — Workflow manager for LaTeX research projects.
 
-        cp -R "$(dirname "$0")/../templates/english-paper" "$2"
-        echo "Created project: $2"
-        ;;
+Usage:
+    kicho init PROJECT
+    kicho --help
+    kicho --version
 
-    *)
-        echo "Usage: kicho init PROJECT"
+Commands:
+    init PROJECT     Create a new LaTeX research project.
+
+Options:
+    -h, --help       Show this help message.
+    -v, --version    Show version information.
+EOF
+}
+
+show_version() {
+    printf 'kicho %s\n' "$VERSION"
+}
+
+error() {
+    printf 'Error: %s\n' "$1" >&2
+}
+
+init_project() {
+    local project="${1:-}"
+
+    if [[ -z "$project" ]]; then
+        error "project name required."
+        printf '\nUsage:\n    kicho init PROJECT\n' >&2
         exit 1
-        ;;
-esac
+    fi
+
+    if [[ -e "$project" ]]; then
+        error "directory '$project' already exists."
+        exit 1
+    fi
+
+    local script_dir
+    script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+    cp -R "$script_dir/../templates/english-paper" "$project"
+    printf 'Created project: %s\n' "$project"
+}
+
+main() {
+    case "${1:-}" in
+        "")
+            show_help
+            ;;
+
+        -h|--help)
+            show_help
+            ;;
+
+        -v|--version)
+            show_version
+            ;;
+
+        init)
+            init_project "${2:-}"
+            ;;
+
+        *)
+            error "unknown command '$1'."
+            printf "Run 'kicho --help' for usage.\n" >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
