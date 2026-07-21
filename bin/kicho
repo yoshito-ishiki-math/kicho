@@ -10,11 +10,15 @@ Kicho — Workflow manager for LaTeX research projects.
 
 Usage:
     kicho init PROJECT
+    kicho build
+    kicho clean
     kicho --help
     kicho --version
 
 Commands:
     init PROJECT     Create a new LaTeX research project.
+    build            Build the current LaTeX project.
+    clean            Remove generated LaTeX files.
 
 Options:
     -h, --help       Show this help message.
@@ -28,6 +32,21 @@ show_version() {
 
 error() {
     printf 'Error: %s\n' "$1" >&2
+}
+
+require_kicho_project() {
+    if [[ ! -f ".latexmkrc" ]]; then
+        error "'.latexmkrc' not found."
+        printf "Run this command from the root of a Kicho project.\n" >&2
+        exit 1
+    fi
+}
+
+require_latexmk() {
+    if ! command -v latexmk >/dev/null 2>&1; then
+        error "'latexmk' is not installed or not available in PATH."
+        exit 1
+    fi
 }
 
 init_project() {
@@ -51,6 +70,37 @@ init_project() {
     printf 'Created project: %s\n' "$project"
 }
 
+build_project() {
+    require_kicho_project
+    require_latexmk
+
+    printf 'Building project...\n'
+
+    if latexmk; then
+        printf 'Build completed successfully.\n'
+    else
+        local status=$?
+        error "build failed."
+        exit "$status"
+    fi
+}
+
+clean_project() {
+    require_kicho_project
+    require_latexmk
+
+    printf 'Cleaning project...\n'
+
+    if latexmk -C; then
+        rm -rf build
+        printf 'Clean completed successfully.\n'
+    else
+        local status=$?
+        error "clean failed."
+        exit "$status"
+    fi
+}
+
 main() {
     case "${1:-}" in
         "")
@@ -67,6 +117,14 @@ main() {
 
         init)
             init_project "${2:-}"
+            ;;
+
+        build)
+            build_project
+            ;;
+
+        clean)
+            clean_project
             ;;
 
         *)
