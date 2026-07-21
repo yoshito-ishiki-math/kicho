@@ -1,0 +1,6 @@
+- [ ] --english
+- [ ] --japanese
+- [ ] --blog
+- [ ] Git初期化
+- [ ] VS Code起動
+- [ ] arXivテンプレート
