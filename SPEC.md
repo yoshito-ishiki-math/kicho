@@ -97,3 +97,49 @@ The project is not intended to
 - replace full-featured LaTeX IDEs.
 - generate publisher-specific templates by default.
 - manage bibliography databases.
+
+## Philosophy
+
+newpaper should generate a clean starting point,
+not a complete writing environment.
+
+Users should be free to customize the generated project.
+
+I added the following information.
+
+# Specification
+
+## Initial command
+
+kicho init <project>
+
+Generates
+
+- amsart template
+- LuaLaTeX project
+- latexmk configuration
+- biber
+- preamble
+- bibliography
+- VS Code settings
+- gitignore
+
+The generated project should compile identically from
+
+- VS Code
+- TeXShop
+- terminal
+
+without modifying build settings.
+
+Future commands
+
+kicho build
+
+kicho clean
+
+kicho archive
+
+kicho split
+
+kicho flatten

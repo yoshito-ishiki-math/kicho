@@ -192,3 +192,120 @@ prioritize
 over adding many options.
 
 The project should remain useful even after several years.
+
+I added the following information.
+
+# AI Guidelines
+
+This document explains the long-term philosophy of Kicho.
+
+## Project
+
+Kicho is **not** merely a LaTeX template generator.
+
+Its goal is to become a workflow manager for academic writing.
+
+The target users are researchers writing mathematical papers over many years.
+
+The project values
+
+- reproducibility
+- portability
+- editor independence
+- minimal configuration
+- maintainability
+
+rather than feature richness.
+
+---
+
+## Repository history
+
+This repository originated while building a VS Code + MacTeX writing environment.
+
+Originally the project was called **newpaper**.
+
+After the editor environment became stable, the project was separated and renamed **Kicho**.
+
+Therefore the repository currently contains
+
+- experimental code
+- temporary specifications
+- remnants of the old name
+- unfinished documentation
+
+This is expected.
+
+Do not assume inconsistencies are design mistakes.
+
+---
+
+## Build philosophy
+
+Build configuration must be centralized in
+
+    .latexmkrc
+
+Editors never define build logic.
+
+The intended workflow is
+
+VS Code
+    ↓
+LaTeX Workshop
+    ↓
+latexmk
+    ↓
+.latexmkrc
+    ↓
+LuaLaTeX + biber
+
+TeXShop
+    ↓
+latexmk
+    ↓
+.latexmkrc
+
+Terminal
+    ↓
+latexmk
+    ↓
+.latexmkrc
+
+Every editor should produce identical output.
+
+---
+
+## Development philosophy
+
+Implement the smallest useful feature first.
+
+The first milestone is
+
+    kicho init
+
+Later features include
+
+- build
+- clean
+- archive
+- split
+- flatten
+
+split and flatten are expected to become the distinguishing features of Kicho.
+
+---
+
+## Coding philosophy
+
+Prefer
+
+- simple code
+- explicit behavior
+- minimal dependencies
+
+Avoid unnecessary abstraction.
+
+Do not over-engineer early versions.
+
+Grow the project incrementally.
