@@ -1,56 +1,48 @@
-#!/usr/bin/env bash
+# Common constants and functions for Kicho.
 
-set -e
+readonly KICHO_VERSION="0.1.0"
 
-KICHO_BIN_DIR="$(
-    cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
-    pwd
-)"
+kicho_show_help() {
+    cat <<'EOF'
+Kicho — Workflow manager for LaTeX research projects.
 
-KICHO_ROOT="$(
-    cd -- "$KICHO_BIN_DIR/.." &&
-    pwd
-)"
+Usage:
+    kicho init PROJECT
+    kicho build
+    kicho clean
+    kicho --help
+    kicho --version
 
-KICHO_LIB_DIR="$KICHO_ROOT/lib/kicho"
+Commands:
+    init PROJECT     Create a new LaTeX research project.
+    build            Build the current LaTeX project.
+    clean            Remove generated LaTeX files.
 
-source "$KICHO_LIB_DIR/common.sh"
-source "$KICHO_LIB_DIR/init.sh"
-source "$KICHO_LIB_DIR/build.sh"
-source "$KICHO_LIB_DIR/clean.sh"
-
-main() {
-    case "${1:-}" in
-        "")
-            show_help
-            ;;
-
-        -h|--help)
-            show_help
-            ;;
-
-        -v|--version)
-            show_version
-            ;;
-
-        init)
-            init_project "${2:-}"
-            ;;
-
-        build)
-            build_project
-            ;;
-
-        clean)
-            clean_project
-            ;;
-
-        *)
-            error "unknown command '$1'."
-            printf "Run 'kicho --help' for usage.\n" >&2
-            exit 1
-            ;;
-    esac
+Options:
+    -h, --help       Show this help message.
+    -v, --version    Show version information.
+EOF
 }
 
-main "$@"
+kicho_show_version() {
+    printf 'kicho %s\n' "$KICHO_VERSION"
+}
+
+kicho_error() {
+    printf 'Error: %s\n' "$1" >&2
+}
+
+kicho_require_project() {
+    if [[ ! -f ".latexmkrc" ]]; then
+        kicho_error "'.latexmkrc' not found."
+        printf 'Run this command from the root of a Kicho project.\n' >&2
+        exit 1
+    fi
+}
+
+kicho_require_latexmk() {
+    if ! command -v latexmk >/dev/null 2>&1; then
+        kicho_error "'latexmk' is not installed or not available in PATH."
+        exit 1
+    fi
+}

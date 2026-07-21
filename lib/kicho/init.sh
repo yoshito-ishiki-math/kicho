@@ -1,23 +1,23 @@
 # Implementation of `kicho init`.
 
-init_project() {
+kicho_init() {
     local project="${1:-}"
 
     if [[ -z "$project" ]]; then
-        error "project name required."
+        kicho_error "project name required."
         printf '\nUsage:\n    kicho init PROJECT\n' >&2
         exit 1
     fi
 
     if [[ -e "$project" ]]; then
-        error "directory '$project' already exists."
+        kicho_error "directory '$project' already exists."
         exit 1
     fi
 
     local template_dir="$KICHO_ROOT/templates/english-paper"
 
     if [[ ! -d "$template_dir" ]]; then
-        error "template directory not found: '$template_dir'."
+        kicho_error "template directory not found: '$template_dir'."
         exit 1
     fi
 

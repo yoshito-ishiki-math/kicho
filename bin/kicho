@@ -2,133 +2,51 @@
 
 set -e
 
-VERSION="0.1.0"
+KICHO_BIN_DIR="$(
+    cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
+    pwd
+)"
 
-show_help() {
-    cat <<'EOF'
-Kicho — Workflow manager for LaTeX research projects.
+KICHO_ROOT="$(
+    cd -- "$KICHO_BIN_DIR/.." &&
+    pwd
+)"
 
-Usage:
-    kicho init PROJECT
-    kicho build
-    kicho clean
-    kicho --help
-    kicho --version
+KICHO_LIB_DIR="$KICHO_ROOT/lib/kicho"
 
-Commands:
-    init PROJECT     Create a new LaTeX research project.
-    build            Build the current LaTeX project.
-    clean            Remove generated LaTeX files.
-
-Options:
-    -h, --help       Show this help message.
-    -v, --version    Show version information.
-EOF
-}
-
-show_version() {
-    printf 'kicho %s\n' "$VERSION"
-}
-
-error() {
-    printf 'Error: %s\n' "$1" >&2
-}
-
-require_kicho_project() {
-    if [[ ! -f ".latexmkrc" ]]; then
-        error "'.latexmkrc' not found."
-        printf "Run this command from the root of a Kicho project.\n" >&2
-        exit 1
-    fi
-}
-
-require_latexmk() {
-    if ! command -v latexmk >/dev/null 2>&1; then
-        error "'latexmk' is not installed or not available in PATH."
-        exit 1
-    fi
-}
-
-init_project() {
-    local project="${1:-}"
-
-    if [[ -z "$project" ]]; then
-        error "project name required."
-        printf '\nUsage:\n    kicho init PROJECT\n' >&2
-        exit 1
-    fi
-
-    if [[ -e "$project" ]]; then
-        error "directory '$project' already exists."
-        exit 1
-    fi
-
-    local script_dir
-    script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-
-    cp -R "$script_dir/../templates/english-paper" "$project"
-    printf 'Created project: %s\n' "$project"
-}
-
-build_project() {
-    require_kicho_project
-    require_latexmk
-
-    printf 'Building project...\n'
-
-    if latexmk; then
-        printf 'Build completed successfully.\n'
-    else
-        local status=$?
-        error "build failed."
-        exit "$status"
-    fi
-}
-
-clean_project() {
-    require_kicho_project
-    require_latexmk
-
-    printf 'Cleaning project...\n'
-
-    if latexmk -C; then
-        rm -rf build
-        printf 'Clean completed successfully.\n'
-    else
-        local status=$?
-        error "clean failed."
-        exit "$status"
-    fi
-}
+source "$KICHO_LIB_DIR/common.sh"
+source "$KICHO_LIB_DIR/init.sh"
+source "$KICHO_LIB_DIR/build.sh"
+source "$KICHO_LIB_DIR/clean.sh"
 
 main() {
     case "${1:-}" in
         "")
-            show_help
+            kicho_show_help
             ;;
 
         -h|--help)
-            show_help
+            kicho_show_help
             ;;
 
         -v|--version)
-            show_version
+            kicho_show_version
             ;;
 
         init)
-            init_project "${2:-}"
+            kicho_init "${2:-}"
             ;;
 
         build)
-            build_project
+            kicho_build
             ;;
 
         clean)
-            clean_project
+            kicho_clean
             ;;
 
         *)
-            error "unknown command '$1'."
+            kicho_error "unknown command '$1'."
             printf "Run 'kicho --help' for usage.\n" >&2
             exit 1
             ;;

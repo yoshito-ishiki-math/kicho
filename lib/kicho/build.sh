@@ -1,8 +1,8 @@
 # Implementation of `kicho build`.
 
-build_project() {
-    require_kicho_project
-    require_latexmk
+kicho_build() {
+    kicho_require_project
+    kicho_require_latexmk
 
     printf 'Building project...\n'
 
@@ -10,7 +10,7 @@ build_project() {
         printf 'Build completed successfully.\n'
     else
         local status=$?
-        error "build failed."
+        kicho_error "build failed."
         exit "$status"
     fi
 }

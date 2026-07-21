@@ -1,8 +1,8 @@
 # Implementation of `kicho clean`.
 
-clean_project() {
-    require_kicho_project
-    require_latexmk
+kicho_clean() {
+    kicho_require_project
+    kicho_require_latexmk
 
     printf 'Cleaning project...\n'
 
@@ -11,7 +11,7 @@ clean_project() {
         printf 'Clean completed successfully.\n'
     else
         local status=$?
-        error "clean failed."
+        kicho_error "clean failed."
         exit "$status"
     fi
 }
