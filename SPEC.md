@@ -355,14 +355,50 @@ kicho --version
 
 ---
 
-## Planned Commands
+## `archive` Command
 
-The following commands are planned but are not currently implemented:
+Create a read-only snapshot of the current project.
+
+```bash
+kicho archive
+```
+
+The command requires a Kicho project and does not accept arguments. It creates:
+
+```text
+archives/YYYY-MM-DD_HH-MM-SS/
+├── source/
+├── pdf/
+│   └── main.pdf
+└── metadata/
+    └── archive.json
+```
+
+The source snapshot copies `main.tex`, `sections/`, `preamble/`, `figures/`,
+`bib/`, and `.latexmkrc` when present. Missing source entries produce warnings
+without failing the archive.
+
+If `build/main.pdf` exists, it is copied to `pdf/main.pdf`. A missing PDF
+produces a warning and leaves the `pdf/` directory empty.
+
+`archive.json` records the Kicho version, creation time, and project directory
+name. When the project is inside a Git work tree with a valid `HEAD`, it also
+records the branch (or `HEAD` when detached), commit, and dirty state. Kicho
+only reads Git information and does not modify the repository.
+
+Archive paths are never reused. The command fails if the timestamped destination
+already exists.
+
+---
+
+## Placeholder Commands
+
+The following command names and help entries exist, but their functional
+behavior is not currently implemented:
 
 ```bash
 kicho split
 kicho flatten
-kicho archive
 kicho submit
 ```
 

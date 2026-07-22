@@ -124,15 +124,15 @@ Goal: support reproducible project snapshots and submission-ready packages.
 
 ### `archive`
 
-- [ ] Define archive contents
-- [ ] Include source files
-- [ ] Include bibliography files
-- [ ] Include figures
-- [ ] Include the compiled PDF
-- [ ] Include relevant configuration files
-- [ ] Exclude temporary build artifacts
-- [ ] Add version and timestamp metadata
-- [ ] Define archive naming rules
+- [x] Define archive contents
+- [x] Include source files
+- [x] Include bibliography files
+- [x] Include figures
+- [x] Include the compiled PDF when available
+- [x] Include relevant configuration files
+- [x] Exclude temporary build artifacts
+- [x] Add version, timestamp, project, and read-only Git metadata
+- [x] Define archive naming rules
 - [ ] Produce a compressed archive
 
 ### `submit`

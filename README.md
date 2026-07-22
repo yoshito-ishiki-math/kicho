@@ -4,7 +4,8 @@ Kicho is a command-line workflow manager for LaTeX research projects.
 
 It aims to support the entire lifecycle of mathematical writing, from project creation to journal submission, while remaining compatible with standard LaTeX workflows.
 
-The current version provides project initialization together with basic project management commands such as project building and cleaning.
+The current version provides project initialization, building, cleaning,
+environment diagnostics, and project snapshots.
 
 ---
 
@@ -15,6 +16,9 @@ The current version provides project initialization together with basic project 
 - Create a new LaTeX research project
 - Build the project using `latexmk`
 - Clean generated build files
+- Check the local environment with `doctor`
+- Create source, PDF, and metadata snapshots with `archive`
+- Show command-specific help with `help COMMAND`
 - Built-in help (`--help`)
 - Version information (`--version`)
 
@@ -22,7 +26,6 @@ The current version provides project initialization together with basic project 
 
 - Split large documents
 - Flatten projects for journal submission
-- Archive completed projects
 - Submission workflow
 - Project management utilities
 
@@ -63,6 +66,12 @@ Clean generated files.
 
 ```bash
 ../bin/kicho clean
+```
+
+Create a snapshot of the source, compiled PDF, and project metadata.
+
+```bash
+../bin/kicho archive
 ```
 
 Show available commands.
@@ -108,7 +117,8 @@ archive
 submit
 ```
 
-Current releases implement the first stage of this workflow, with additional functionality planned for future versions.
+Current releases implement the basic project commands and archive snapshots.
+Document transformation and submission functionality remain planned.
 
 ---
 

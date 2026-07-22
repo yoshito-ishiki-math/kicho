@@ -481,18 +481,23 @@ Flattening should produce new output rather than destructively rewriting the wor
 
 ### `archive`
 
-The `archive` command may create a reproducible snapshot of a project.
+The `archive` command creates a reproducible, timestamped snapshot without
+modifying the project source.
 
-Potential archive contents include:
+The snapshot contains:
 
 - source files
 - bibliography files
 - figures
 - configuration
-- compiled PDF
-- version metadata
+- the compiled PDF when available
+- JSON metadata containing the Kicho version, creation time, and project name
+- read-only Git branch, commit, and dirty-state metadata when available
 
-Generated temporary files should normally be excluded.
+Generated temporary files other than the compiled PDF are excluded. Git is
+queried before archive output is created so the archive itself does not affect
+the recorded dirty state. Kicho must not perform Git mutations as part of
+archiving.
 
 ### `submit`
 
