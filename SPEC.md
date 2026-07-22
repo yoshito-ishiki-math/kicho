@@ -53,8 +53,12 @@ The command creates a new directory from Kicho's built-in project template.
 The command fails if:
 
 - the project name is omitted
+- more than one project name is supplied
 - a file or directory already exists at the destination
 - the project template cannot be copied
+
+The generated `build/` directory starts empty except for its tracked placeholder,
+even if the local template directory contains ignored build artifacts.
 
 #### Exit Status
 
@@ -88,6 +92,8 @@ The command runs:
 ```bash
 latexmk
 ```
+
+The command does not accept arguments.
 
 Build behavior is delegated to the project's `.latexmkrc`.
 
@@ -154,6 +160,8 @@ The command first runs:
 ```bash
 latexmk -C
 ```
+
+The command does not accept arguments.
 
 It then removes the generated `build/` directory.
 

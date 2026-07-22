@@ -21,6 +21,12 @@ kicho_command_clean_requires_latexmk() {
 }
 
 kicho_command_clean() {
+    if [[ $# -ne 0 ]]; then
+        kicho_error "clean does not accept arguments."
+        printf "Run 'kicho help clean' for usage.\n" >&2
+        return 1
+    fi
+
     printf 'Cleaning project...\n'
 
     if latexmk -C; then

@@ -45,9 +45,9 @@ Goal: establish a usable command-line interface and a documented project structu
 
 - [ ] Review all documentation for consistency
 - [ ] Create or update `AI.md`
-- [ ] Add basic automated CLI tests
-- [ ] Verify behavior when required external commands are missing
-- [ ] Verify behavior outside a Kicho project
+- [x] Add basic automated CLI tests
+- [x] Verify behavior when required external commands are missing
+- [x] Verify behavior outside a Kicho project
 - [ ] Decide the versioning and release procedure
 - [ ] Tag the first documented release
 
@@ -84,7 +84,7 @@ Goal: help users diagnose their LaTeX environment and validate project structure
 - [ ] Add tests for successful diagnostics
 - [ ] Add tests for missing tools
 - [ ] Add tests for malformed projects
-- [ ] Add tests for exit codes and standard-error output
+- [x] Add tests for exit codes and standard-error output
 
 ---
 

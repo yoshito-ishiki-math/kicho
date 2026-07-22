@@ -21,6 +21,12 @@ kicho_command_build_requires_latexmk() {
 }
 
 kicho_command_build() {
+    if [[ $# -ne 0 ]]; then
+        kicho_error "build does not accept arguments."
+        printf "Run 'kicho help build' for usage.\n" >&2
+        return 1
+    fi
+
     printf 'Building project...\n'
 
     if latexmk; then

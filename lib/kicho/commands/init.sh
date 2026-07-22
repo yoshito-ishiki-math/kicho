@@ -15,10 +15,16 @@ kicho_command_init_examples() {
 kicho_command_init() {
     local project="${1:-}"
 
-    if [[ -z "$project" ]]; then
+    if [[ $# -eq 0 ]]; then
         kicho_error "project name required."
         printf '\nUsage:\n    kicho init PROJECT\n' >&2
-        exit 1
+        return 1
+    fi
+
+    if [[ $# -ne 1 ]]; then
+        kicho_error "init accepts exactly one project name."
+        printf "Run 'kicho help init' for usage.\n" >&2
+        return 1
     fi
 
     if [[ -e "$project" ]]; then
@@ -34,5 +40,12 @@ kicho_command_init() {
     fi
 
     cp -R "$template_dir" "$project"
+
+    rm -rf "$project/build"
+    mkdir -p "$project/build"
+    if [[ -f "$template_dir/build/.gitkeep" ]]; then
+        cp "$template_dir/build/.gitkeep" "$project/build/.gitkeep"
+    fi
+
     printf 'Created project: %s\n' "$project"
 }

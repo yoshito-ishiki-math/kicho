@@ -82,6 +82,16 @@ Show available commands.
 
 ---
 
+## Testing
+
+Run the complete syntax and integration test suite from the repository root.
+
+```bash
+bash tests/run.sh
+```
+
+---
+
 ## Generated Project Structure
 
 ```
