@@ -6,25 +6,85 @@ kicho_command_init_summary() {
 }
 
 kicho_command_init_usage() {
-    printf 'Usage:\n    kicho init PROJECT\n'
+    cat <<'USAGE'
+Usage:
+    kicho init PROJECT
+    kicho init --template TEMPLATE PROJECT
+
+Templates:
+    english     English amsart paper (default)
+    japanese    Japanese jlreq paper using LuaLaTeX-ja
+USAGE
 }
 
 kicho_command_init_examples() {
-    printf 'Examples:\n    kicho init MyPaper\n'
+    cat <<'EXAMPLES'
+Examples:
+    kicho init MyPaper
+    kicho init --template japanese MyJapanesePaper
+EXAMPLES
+}
+
+kicho_init_template_directory() {
+    case "$1" in
+        english) printf '%s\n' "$KICHO_ROOT/templates/english-paper" ;;
+        japanese) printf '%s\n' "$KICHO_ROOT/templates/japanese-paper" ;;
+        *) return 1 ;;
+    esac
 }
 
 kicho_command_init() {
-    local project="${1:-}"
+    local project=""
+    local template="english"
 
-    if [[ $# -eq 0 ]]; then
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -t|--template)
+                if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                    kicho_error "option '$1' requires a template name."
+                    return 1
+                fi
+                template="$2"
+                shift 2
+                ;;
+
+            --template=*)
+                template="${1#*=}"
+                if [[ -z "$template" ]]; then
+                    kicho_error "option '--template' requires a template name."
+                    return 1
+                fi
+                shift
+                ;;
+
+            -*)
+                kicho_error "unknown init option '$1'."
+                printf "Run 'kicho help init' for usage.\n" >&2
+                return 1
+                ;;
+
+            *)
+                if [[ -n "$project" ]]; then
+                    kicho_error "init accepts exactly one project name."
+                    printf "Run 'kicho help init' for usage.\n" >&2
+                    return 1
+                fi
+                project="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$project" ]]; then
         kicho_error "project name required."
         printf '\nUsage:\n    kicho init PROJECT\n' >&2
         return 1
     fi
 
-    if [[ $# -ne 1 ]]; then
-        kicho_error "init accepts exactly one project name."
-        printf "Run 'kicho help init' for usage.\n" >&2
+    local template_dir
+    if ! template_dir="$(kicho_init_template_directory "$template")"; then
+        kicho_error "unknown project template '$template'."
+        printf "Available templates: english, japanese.\n" >&2
         return 1
     fi
 
@@ -32,8 +92,6 @@ kicho_command_init() {
         kicho_error "directory '$project' already exists."
         exit 1
     fi
-
-    local template_dir="$KICHO_ROOT/templates/english-paper"
 
     if [[ ! -d "$template_dir" ]]; then
         kicho_error "template directory not found: '$template_dir'."

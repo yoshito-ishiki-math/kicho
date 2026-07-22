@@ -14,6 +14,7 @@ environment diagnostics, and project snapshots.
 ### Current
 
 - Create a new LaTeX research project
+- Choose an English or Japanese built-in paper template
 - Build the project using `latexmk`
 - Clean generated build files
 - Check the local environment with `doctor`
@@ -50,6 +51,13 @@ Create a new project.
 
 ```bash
 ./bin/kicho init MyPaper
+```
+
+Create a Japanese LuaLaTeX project using `jlreq`, LuaLaTeX-ja, and the
+Harano Aji fonts included with TeX Live.
+
+```bash
+./bin/kicho init --template japanese MyJapanesePaper
 ```
 
 Move into the project directory.

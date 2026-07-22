@@ -179,6 +179,18 @@ kicho init PROJECT
 
 The template defines the initial structure of a Kicho project.
 
+Kicho currently provides two built-in paper templates:
+
+```text
+templates/english-paper/    amsart, English
+templates/japanese-paper/   jlreq, LuaLaTeX-ja, Japanese
+```
+
+`kicho init PROJECT` selects the English template for backward compatibility.
+`kicho init --template japanese PROJECT` selects the Japanese template. Template
+selection belongs to `init`; build behavior remains owned by each template's
+`.latexmkrc`.
+
 Documentation files belong to the repository itself and must not be copied into every generated paper project unless there is a specific reason.
 
 ---

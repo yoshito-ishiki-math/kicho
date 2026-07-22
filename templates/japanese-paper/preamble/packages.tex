@@ -1,0 +1,40 @@
+% 日本語・フォント
+\usepackage{luatexja-fontspec}
+\setmainjfont{HaranoAjiMincho}
+\setsansjfont{HaranoAjiGothic}
+
+% 数学
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{mathrsfs}
+
+% 図・表・列挙
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{comment}
+
+% 参考文献
+\usepackage[
+  backend=biber,
+  style=alphabetic,
+  maxnames=99
+]{biblatex}
+\addbibresource{bib/references.bib}
+
+% ハイパーリンク・相互参照
+\usepackage[
+  unicode,
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{bookmark}
+
+% 列挙環境
+\setlist[enumerate,1]{label=(\arabic*),ref=(\arabic*)}
+\setlist[enumerate,2]{label=(\roman*),ref=(\roman*)}

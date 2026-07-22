@@ -38,6 +38,7 @@ Create a new LaTeX research project.
 
 ```bash
 kicho init PROJECT
+kicho init --template TEMPLATE PROJECT
 ```
 
 #### Arguments
@@ -45,6 +46,19 @@ kicho init PROJECT
 | Name | Description |
 |---|---|
 | `PROJECT` | Name or path of the project directory to create |
+
+#### Options
+
+| Name | Description |
+|---|---|
+| `-t, --template TEMPLATE` | Select a built-in project template |
+
+Available template names are:
+
+| Name | Description |
+|---|---|
+| `english` | English mathematical paper using `amsart` (default) |
+| `japanese` | Japanese mathematical paper using `jlreq` and LuaLaTeX-ja |
 
 #### Behavior
 
@@ -54,6 +68,8 @@ The command fails if:
 
 - the project name is omitted
 - more than one project name is supplied
+- an option is missing its value
+- an unknown template is requested
 - a file or directory already exists at the destination
 - the project template cannot be copied
 

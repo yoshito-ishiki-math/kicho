@@ -19,5 +19,7 @@
 
 # Build directory
 build/
+!templates/*/build/
+!templates/*/build/.gitkeep
 
 TestPaper/

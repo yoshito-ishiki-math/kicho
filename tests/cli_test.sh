@@ -117,12 +117,37 @@ assert_contains "Created project: $project" "$command_stdout" 'init success outp
 assert_file "$project/main.tex" 'initialized main.tex'
 assert_file "$project/.latexmkrc" 'initialized .latexmkrc'
 assert_file "$project/build/.gitkeep" 'initialized build placeholder'
+assert_contains '{amsart}' "$project/main.tex" 'default English template'
 assert_not_exists "$project/build/main.pdf" 'init excludes ignored PDF artifact'
 assert_not_exists "$project/build/main.aux" 'init excludes ignored auxiliary artifact'
 
 run_in "$test_root" "$KICHO" init "$project"
 assert_status 1 'init existing destination'
 assert_contains 'already exists' "$command_stderr" 'init existing-destination error'
+
+japanese_project="$test_root/日本語 論文"
+run_in "$test_root" "$KICHO" init --template japanese "$japanese_project"
+assert_status 0 'init Japanese project'
+assert_file "$japanese_project/main.tex" 'Japanese main.tex'
+assert_file "$japanese_project/preamble/packages.tex" 'Japanese packages.tex'
+assert_file "$japanese_project/preamble/macros.tex" 'Japanese macros.tex'
+assert_file "$japanese_project/preamble/theorem.tex" 'Japanese theorem.tex'
+assert_file "$japanese_project/sections/introduction.tex" 'Japanese introduction.tex'
+assert_file "$japanese_project/build/.gitkeep" 'Japanese build placeholder'
+assert_contains '{jlreq}' "$japanese_project/main.tex" 'Japanese document class'
+assert_contains 'luatexja-fontspec' "$japanese_project/preamble/packages.tex" 'LuaLaTeX-ja package'
+assert_contains 'HaranoAjiMincho' "$japanese_project/preamble/packages.tex" 'Japanese main font'
+assert_contains '\newtheorem{theorem}{定理}' "$japanese_project/preamble/theorem.tex" 'Japanese theorem label'
+assert_not_exists "$japanese_project/build/main.pdf" 'Japanese init excludes PDF artifact'
+
+run_in "$test_root" "$KICHO" init --template unknown "$test_root/UnknownTemplate"
+assert_status 1 'init unknown template'
+assert_contains "unknown project template 'unknown'" "$command_stderr" 'unknown template error'
+assert_not_exists "$test_root/UnknownTemplate" 'unknown template destination'
+
+run_in "$test_root" "$KICHO" init --template
+assert_status 1 'init missing template value'
+assert_contains 'requires a template name' "$command_stderr" 'missing template value error'
 
 for command in build clean archive split flatten submit; do
     run_in "$test_root" "$KICHO" "$command"

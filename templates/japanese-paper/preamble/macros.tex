@@ -1,0 +1,62 @@
+% 数体系
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+
+\newcommand{\yonn}{\N}
+\newcommand{\yozz}{\Z}
+\newcommand{\yoqq}{\Q}
+\newcommand{\yorr}{\R}
+\newcommand{\yocc}{\C}
+
+% 括弧・集合・ノルム
+\DeclarePairedDelimiter{\paren}{(}{)}
+\DeclarePairedDelimiter{\bracket}{[}{]}
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\DeclarePairedDelimiter{\inner}{\langle}{\rangle}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\DeclarePairedDelimiterX{\Set}[2]{\lbrace}{\rbrace}{%
+  #1\,\delimsize\vert\,#2%
+}
+
+% 演算子
+\DeclareMathOperator{\card}{card}
+\DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\Int}{Int}
+\DeclareMathOperator{\cl}{cl}
+\DeclareMathOperator{\bd}{bd}
+\DeclareMathOperator{\cf}{cf}
+\DeclareMathOperator{\Lip}{Lip}
+\DeclareMathOperator{\Isom}{Isom}
+
+% よく使う数学マクロ
+\newcommand{\dd}{\mathop{}\!\mathrm{d}}
+
+\NewDocumentCommand{\restr}{m m}{%
+  #1\mathord{\upharpoonright}_{#2}%
+}
+
+\NewDocumentCommand{\quotient}{m m}{%
+  #1\!\big/\!#2%
+}
+
+\NewDocumentCommand{\openball}{o m m}{%
+  B\IfValueT{#1}{_{#1}}\paren{#2,#3}%
+}
+
+\NewDocumentCommand{\closedball}{o m m}{%
+  \overline{B}\IfValueT{#1}{_{#1}}\paren{#2,#3}%
+}
+
+\NewDocumentCommand{\mapdef}{m m m m m}{%
+  \begin{aligned}
+    #1\colon #2 &\longrightarrow #3,\\
+    #4 &\longmapsto #5
+  \end{aligned}%
+}

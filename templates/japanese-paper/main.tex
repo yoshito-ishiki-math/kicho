@@ -1,0 +1,44 @@
+% !TeX program = lualatex
+
+\documentclass[
+  paper=a4,
+  fontsize=11pt,
+  jafontsize=11pt,
+  leqno
+]{jlreq}
+
+\input{preamble/packages}
+\input{preamble/macros}
+\input{preamble/theorem}
+
+\title{タイトル}
+\author{著者名}
+\date{\today}
+
+\begin{document}
+
+\begin{abstract}
+概要をここに書いてください。
+\end{abstract}
+
+\maketitle
+
+% \tableofcontents
+
+\section{序論}
+\input{sections/introduction}
+
+\section{準備}
+\input{sections/preliminaries}
+
+\section{主結果}
+\input{sections/main-results}
+
+\appendix
+
+\section{付録}
+\input{sections/appendix}
+
+\printbibliography
+
+\end{document}
