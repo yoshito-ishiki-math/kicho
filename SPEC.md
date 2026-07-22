@@ -186,9 +186,18 @@ Display command-line help.
 ```bash
 kicho --help
 kicho -h
+kicho help
+kicho help COMMAND
 ```
 
 Calling `kicho` without a command also displays the help message.
+
+`kicho help COMMAND` displays the command's summary, usage, examples, and
+aliases when those fields are available. If a command does not define its own
+usage text, Kicho displays a minimal default usage line.
+
+The help command does not run the target command or check its runtime
+requirements.
 
 ### Version
 

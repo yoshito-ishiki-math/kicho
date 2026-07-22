@@ -4,6 +4,14 @@ kicho_command_init_summary() {
     printf 'Create a new LaTeX research project.\n'
 }
 
+kicho_command_init_usage() {
+    printf 'Usage:\n    kicho init PROJECT\n'
+}
+
+kicho_command_init_examples() {
+    printf 'Examples:\n    kicho init MyPaper\n'
+}
+
 kicho_command_init() {
     local project="${1:-}"
 

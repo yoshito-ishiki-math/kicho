@@ -4,10 +4,23 @@ kicho_command_build_summary() {
     printf 'Build the current LaTeX project.\n'
 }
 
-kicho_command_build() {
-    kicho_require_project
-    kicho_require_latexmk
+kicho_command_build_usage() {
+    printf 'Usage:\n    kicho build\n'
+}
 
+kicho_command_build_examples() {
+    printf 'Examples:\n    kicho build\n'
+}
+
+kicho_command_build_requires_project() {
+    return 0
+}
+
+kicho_command_build_requires_latexmk() {
+    return 0
+}
+
+kicho_command_build() {
     printf 'Building project...\n'
 
     if latexmk; then

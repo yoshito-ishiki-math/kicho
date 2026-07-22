@@ -82,6 +82,55 @@ kicho --version
 
 This design is intended to remain stable as new commands are introduced.
 
+### Command Metadata Protocol
+
+Each command is represented by a required implementation function and a set of
+optional metadata functions. For a command named `build`, the protocol is:
+
+```text
+kicho_command_build                    required implementation
+kicho_command_build_summary            optional summary
+kicho_command_build_usage              optional usage text
+kicho_command_build_examples           optional examples
+kicho_command_build_aliases            optional aliases
+kicho_command_build_requires_project   optional project requirement
+kicho_command_build_requires_latexmk   optional latexmk requirement
+```
+
+The loader queries these functions through their naming convention. This keeps
+command files independent while allowing common behavior such as help and
+precondition checks to remain in the loader.
+
+Metadata functions are optional. Missing descriptive metadata produces either
+no output or a minimal default. Missing requirement metadata means that the
+requirement does not apply.
+
+Requirement functions use shell status conventions:
+
+```text
+return 0   requirement applies
+return 1   requirement does not apply
+```
+
+Aliases are whitespace-separated command names printed by the aliases function.
+They must use the same naming rules as commands and must not conflict with a
+command, another alias, or a reserved command name.
+
+The loader performs command execution in this order:
+
+```text
+resolve command or alias
+        ↓
+query command metadata
+        ↓
+check shared requirements
+        ↓
+run the command implementation
+```
+
+Commands remain responsible for their unique work. The loader is responsible
+for discovery, metadata access, shared validation, and dispatch.
+
 ---
 
 ## Current Repository Structure

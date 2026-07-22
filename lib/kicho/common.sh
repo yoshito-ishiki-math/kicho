@@ -16,6 +16,7 @@ Kicho — Workflow manager for LaTeX research projects.
 
 Usage:
     kicho COMMAND [ARGS]
+    kicho help COMMAND
     kicho --help
     kicho --version
 
