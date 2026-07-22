@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # Common constants and functions for Kicho.
 
-readonly KICHO_VERSION="0.1.0"
+readonly KICHO_VERSION="0.2.0-alpha.1"
 
 kicho_error() {
     printf 'Error: %s\n' "$1" >&2

@@ -143,7 +143,7 @@ if [[ -f "$archive_root/pdf/main.pdf" ]] &&
 fi
 
 metadata="$archive_root/metadata/archive.json"
-assert_contains '"kicho_version": "0.1.0"' "$metadata"
+assert_contains '"kicho_version": "0.2.0-alpha.1"' "$metadata"
 assert_contains '"project": "Paper \"Notes\"\\Draft"' "$metadata"
 
 if ! grep -E '"created_at": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{2}"' "$metadata" >/dev/null 2>&1; then

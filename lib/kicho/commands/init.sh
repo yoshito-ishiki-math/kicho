@@ -25,6 +25,10 @@ Examples:
 EXAMPLES
 }
 
+kicho_command_init_accepts_arguments() {
+    return 0
+}
+
 kicho_init_template_directory() {
     case "$1" in
         english) printf '%s\n' "$KICHO_ROOT/templates/english-paper" ;;

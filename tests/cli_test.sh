@@ -78,17 +78,37 @@ trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
 run_in "$test_root" "$KICHO" --version
 assert_status 0 '--version'
-assert_contains 'kicho 0.1.0' "$command_stdout" '--version output'
+assert_contains 'kicho 0.2.0-alpha.1' "$command_stdout" '--version output'
 
 run_in "$test_root" "$KICHO"
 assert_status 0 'empty command'
 assert_contains 'Kicho — Workflow manager for LaTeX research projects.' "$command_stdout" 'general help heading'
 
-for command in archive build clean doctor flatten init split submit; do
+for command in archive build check clean doctor flatten init split submit; do
     run_in "$test_root" "$KICHO" help "$command"
     assert_status 0 "help $command"
     assert_contains "kicho $command" "$command_stdout" "help $command usage"
 done
+
+for command in archive build check clean doctor flatten init split submit; do
+    for help_option in -h --help; do
+        run_in "$test_root" "$KICHO" "$command" "$help_option"
+        assert_status 0 "$command $help_option outside a project"
+        assert_contains "kicho $command" "$command_stdout" "$command $help_option usage"
+    done
+done
+
+run_in "$test_root" "$KICHO" --version unexpected
+assert_status 1 '--version with argument'
+assert_contains "'--version' does not accept arguments" "$command_stderr" '--version argument error'
+
+run_in "$test_root" "$KICHO" --help unexpected
+assert_status 1 '--help with argument'
+assert_contains "'--help' does not accept arguments" "$command_stderr" '--help argument error'
+
+run_in "$test_root" "$KICHO" help build unexpected
+assert_status 1 'help with extra argument'
+assert_contains 'help accepts only one command name' "$command_stderr" 'help argument error'
 
 run_in "$test_root" "$KICHO" missing
 assert_status 1 'unknown command'

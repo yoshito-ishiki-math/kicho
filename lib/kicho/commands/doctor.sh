@@ -2,7 +2,7 @@
 # Implementation of `kicho doctor`.
 
 kicho_command_doctor_summary() {
-    printf 'Check the Kicho installation, LaTeX environment, and current project.\n'
+    printf 'Check the Kicho installation and LaTeX environment.\n'
 }
 
 kicho_command_doctor_usage() {
@@ -12,6 +12,7 @@ Usage:
     kicho doctor --help
 
 The doctor command can be run inside or outside a Kicho project.
+Use "kicho check" to validate project files.
 USAGE
 }
 
@@ -140,52 +141,6 @@ kicho_command_doctor() {
     else
         kicho_doctor_warn 'git was not found.'
         ((warnings += 1))
-    fi
-
-    printf '\nCurrent directory\n'
-    printf '  Path:  %s\n' "$PWD"
-
-    local project_markers=0
-
-    if [[ -f ".latexmkrc" ]]; then
-        kicho_doctor_ok '.latexmkrc found.'
-        ((project_markers += 1))
-    else
-        kicho_doctor_warn '.latexmkrc was not found.'
-        ((warnings += 1))
-    fi
-
-    if [[ -f "main.tex" ]]; then
-        kicho_doctor_ok 'main.tex found.'
-        ((project_markers += 1))
-    else
-        kicho_doctor_warn 'main.tex was not found.'
-        ((warnings += 1))
-    fi
-
-    if [[ -d "bib" ]]; then
-        kicho_doctor_ok 'bib directory found.'
-    else
-        kicho_doctor_warn 'bib directory was not found.'
-        ((warnings += 1))
-    fi
-
-    if [[ -d "build" ]]; then
-        kicho_doctor_ok 'build directory found.'
-    else
-        kicho_doctor_warn 'build directory was not found.'
-        ((warnings += 1))
-    fi
-
-    if ((project_markers == 0)); then
-        printf '\n'
-        kicho_doctor_warn 'The current directory does not appear to be a Kicho project.'
-    elif ((project_markers < 2)); then
-        printf '\n'
-        kicho_doctor_warn 'The current directory appears to be an incomplete Kicho project.'
-    else
-        printf '\n'
-        kicho_doctor_ok 'The current directory appears to be a Kicho project.'
     fi
 
     printf '\nSummary\n'

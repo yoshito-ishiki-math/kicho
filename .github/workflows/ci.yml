@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ShellCheck, Bash 3.2, and integration tests
+    runs-on: macos-14
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: brew install shellcheck
+
+      - name: Show system Bash version
+        run: /bin/bash --version
+
+      - name: Run lint, syntax, and integration tests
+        env:
+          KICHO_TEST_BASH: /bin/bash
+        run: /bin/bash tests/run.sh

@@ -208,6 +208,11 @@ kicho_dispatch() {
             ;;
 
         -h|--help)
+            if [[ -n "${2:-}" ]]; then
+                kicho_error "'$command' does not accept arguments."
+                printf "Run 'kicho --help' for usage.\n" >&2
+                return 1
+            fi
             kicho_show_help
             return
             ;;
@@ -229,6 +234,11 @@ kicho_dispatch() {
             ;;
 
         -v|--version|version)
+            if [[ -n "${2:-}" ]]; then
+                kicho_error "'$command' does not accept arguments."
+                printf "Run 'kicho --help' for usage.\n" >&2
+                return 1
+            fi
             kicho_show_version
             return
             ;;
@@ -250,6 +260,27 @@ kicho_dispatch() {
     command_function="$(kicho_command_function_name "$resolved_command")"
 
     shift
+
+    case "${1:-}" in
+        -h|--help)
+            if [[ $# -ne 1 ]]; then
+                kicho_error "'$resolved_command --help' does not accept arguments."
+                printf "Run 'kicho help %s' for usage.\n" "$resolved_command" >&2
+                return 1
+            fi
+
+            kicho_show_command_help "$resolved_command"
+            return
+            ;;
+    esac
+
+    if [[ $# -gt 0 ]] &&
+        ! kicho_command_query "$resolved_command" accepts_arguments; then
+        kicho_error "$resolved_command does not accept arguments."
+        printf "Run 'kicho help %s' for usage.\n" "$resolved_command" >&2
+        return 1
+    fi
+
     kicho_check_command_requirements "$resolved_command"
     "$command_function" "$@"
 }

@@ -117,8 +117,9 @@ Each document has a single responsibility.
 | README.md | Project introduction |
 | SPEC.md | User-visible command specification |
 | DESIGN.md | Internal architecture |
-| ROADMAP.md | Long-term development plan |
+| TODO.md | Implemented work and remaining roadmap |
 | CHANGELOG.md | Release history |
+| RELEASING.md | Version and release procedure |
 | CONTRIBUTING.md | Contribution guidelines |
 | CONTEXT.md | Historical background |
 | REVIEW.md | Future architectural discussions |
@@ -139,6 +140,10 @@ Refactor only when complexity justifies it.
 Keep dependencies minimal whenever possible.
 
 Maintain compatibility with standard LaTeX workflows.
+
+Shell code must remain compatible with the macOS system Bash 3.2. Every
+user-visible change should include appropriate integration coverage and pass
+ShellCheck and `bash -n` through `tests/run.sh`.
 
 ---
 

@@ -22,6 +22,8 @@ Examples:
 kicho init MyPaper
 kicho build
 kicho clean
+kicho doctor
+kicho check
 ```
 
 Future functionality should normally be introduced as additional subcommands.
@@ -201,6 +203,70 @@ figures/
 
 ---
 
+### `doctor`
+
+Diagnose the Kicho installation and the external LaTeX environment.
+
+#### Usage
+
+```bash
+kicho doctor
+```
+
+The command can run inside or outside a Kicho project. It checks the Kicho
+installation, required commands (`bash`, `latexmk`, `lualatex`, and `biber`),
+and optional Git availability. Project files are intentionally handled by
+`kicho check`.
+
+Warnings do not make the command fail. A missing required command or a broken
+Kicho installation is a failure.
+
+#### Exit Status
+
+| Code | Meaning |
+|---|---|
+| `0` | Required checks passed, with or without warnings |
+| `1` | One or more required checks failed |
+
+---
+
+### `check`
+
+Validate the structure and statically discoverable file references of the
+current project.
+
+#### Usage
+
+```bash
+kicho check
+```
+
+The MVP checks:
+
+- `main.tex`
+- `.latexmkrc`
+- literal `\input{...}` and `\include{...}` references, recursively
+- literal `\addbibresource{...}` and `\bibliography{...}` references
+- literal `\includegraphics{...}` references
+- the conventional `bib/` and `figures/` directories
+
+Paths generated through TeX macros cannot be resolved safely by the MVP and
+produce warnings. References that resolve outside the project, reference a
+symbolic link, or name a missing file are errors. The check is static and does
+not replace a real LaTeX build.
+
+Missing optional conventional directories produce warnings. Missing required
+project files or referenced files produce errors.
+
+#### Exit Status
+
+| Code | Meaning |
+|---|---|
+| `0` | No errors were found, with or without warnings |
+| `1` | One or more errors were found |
+
+---
+
 ## Global Options
 
 ### Help
@@ -212,6 +278,8 @@ kicho --help
 kicho -h
 kicho help
 kicho help COMMAND
+kicho COMMAND --help
+kicho COMMAND -h
 ```
 
 Calling `kicho` without a command also displays the help message.
@@ -222,6 +290,10 @@ usage text, Kicho displays a minimal default usage line.
 
 The help command does not run the target command or check its runtime
 requirements.
+
+The command-specific `--help` and `-h` forms are equivalent to
+`kicho help COMMAND`. They must also work when the current directory or external
+tools do not satisfy the command's runtime requirements.
 
 ### Version
 
@@ -241,7 +313,7 @@ kicho VERSION
 Example:
 
 ```text
-kicho 0.1.0
+kicho 0.2.0-alpha.1
 ```
 
 ---
@@ -259,6 +331,10 @@ Kicho reports an error when:
 
 Diagnostic messages are written to standard error.
 
+Normal command results and diagnostic reports from `doctor` and `check` are
+written to standard output. Operational warnings from commands that create or
+copy files are written to standard error.
+
 User-facing errors should:
 
 - state what failed
@@ -271,6 +347,9 @@ Example:
 Error: unknown command 'example'.
 Run 'kicho --help' for usage.
 ```
+
+Invalid arguments return status `1`. Commands that delegate to an external
+program preserve that program's nonzero status where practical.
 
 ---
 

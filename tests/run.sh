@@ -10,6 +10,7 @@ KICHO_ROOT="$(
     cd -- "$TEST_DIR/.." &&
     pwd
 )"
+KICHO_TEST_BASH="${KICHO_TEST_BASH:-bash}"
 
 status=0
 
@@ -24,7 +25,7 @@ elif ! shellcheck -x \
     status=1
 fi
 
-if ! bash -n \
+if ! "$KICHO_TEST_BASH" -n \
     "$KICHO_ROOT/bin/kicho" \
     "$KICHO_ROOT/lib/kicho/"*.sh \
     "$KICHO_ROOT/lib/kicho/commands/"*.sh \
@@ -34,9 +35,11 @@ fi
 
 for test_file in \
     "$TEST_DIR/cli_test.sh" \
+    "$TEST_DIR/doctor_test.sh" \
+    "$TEST_DIR/check_test.sh" \
     "$TEST_DIR/archive_test.sh" \
     "$TEST_DIR/workflow_test.sh"; do
-    if ! bash "$test_file"; then
+    if ! "$KICHO_TEST_BASH" "$test_file"; then
         status=1
     fi
 done

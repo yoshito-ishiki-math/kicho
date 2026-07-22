@@ -93,6 +93,7 @@ kicho_command_build_summary            optional summary
 kicho_command_build_usage              optional usage text
 kicho_command_build_examples           optional examples
 kicho_command_build_aliases            optional aliases
+kicho_command_build_accepts_arguments  optional argument opt-in
 kicho_command_build_requires_project   optional project requirement
 kicho_command_build_requires_latexmk   optional latexmk requirement
 ```
@@ -103,7 +104,8 @@ precondition checks to remain in the loader.
 
 Metadata functions are optional. Missing descriptive metadata produces either
 no output or a minimal default. Missing requirement metadata means that the
-requirement does not apply.
+requirement does not apply. Commands accept no arguments by default; a command
+that parses arguments or options opts in with `accepts_arguments`.
 
 Requirement functions use shell status conventions:
 
@@ -123,6 +125,10 @@ resolve command or alias
         ↓
 query command metadata
         ↓
+handle command-specific help
+        ↓
+reject unsupported arguments
+        ↓
 check shared requirements
         ↓
 run the command implementation
@@ -130,6 +136,9 @@ run the command implementation
 
 Commands remain responsible for their unique work. The loader is responsible
 for discovery, metadata access, shared validation, and dispatch.
+
+Command-specific help is handled before shared requirements, so commands such
+as `kicho build --help` work outside a project and without `latexmk`.
 
 ---
 
@@ -139,9 +148,15 @@ The Kicho repository currently uses a simple structure similar to:
 
 ```text
 kicho/
+├── .github/workflows/ci.yml
 ├── bin/
 │   └── kicho
+├── lib/kicho/
+│   ├── common.sh
+│   ├── loader.sh
+│   └── commands/
 ├── templates/
+├── tests/
 ├── README.md
 ├── SPEC.md
 ├── DESIGN.md
@@ -160,14 +175,23 @@ The current implementation is centered on:
 bin/kicho
 ```
 
-This script is responsible for:
+This script determines the installation paths and loads the CLI library. The
+library is responsible for:
 
-- parsing commands
-- validating arguments
+- discovering commands in `lib/kicho/commands/`
+- parsing and validating dispatch-level arguments
 - displaying help and version information
 - reporting errors
 - dispatching subcommands
-- invoking external tools such as `latexmk`
+
+Individual command files contain metadata and command-specific behavior.
+Shared checks and output helpers belong in `loader.sh` and `common.sh`.
+
+### `tests/` and `.github/workflows/`
+
+`tests/run.sh` is the single local entry point for ShellCheck, syntax checks,
+and integration tests. CI runs it on macOS with `/bin/bash`, which is the
+supported Bash 3.2 compatibility baseline.
 
 ### `templates/`
 
@@ -394,9 +418,9 @@ Users should not be forced to begin with many files or directories.
 
 The `sections/` directory exists as an option, not as a requirement.
 
-The future `split` command should help users transition from a large single file to a multi-file structure when needed.
+The `split` command helps users transition from a large single file to a multi-file structure when needed.
 
-The future `flatten` command should reverse that structure for journal submission or portability.
+The `flatten` command reverses that structure for journal submission or portability.
 
 ---
 
@@ -416,6 +440,31 @@ Expected LaTeX toolchain:
 Before invoking an external tool, Kicho should check that it is available and provide a clear error if it is missing.
 
 Kicho should preserve the exit status of underlying tools where practical.
+
+---
+
+## Diagnostics Architecture
+
+Kicho separates environment diagnostics from project validation:
+
+```text
+doctor    installation and external toolchain
+check     current project structure and file references
+```
+
+`doctor` may run anywhere. Missing required tools are failures; the absence of
+optional tools is a warning. It does not diagnose project files.
+
+`check` deliberately does not use the loader's `requires_project` precondition.
+It must be able to inspect and report a missing `.latexmkrc` rather than failing
+before its report begins. Its MVP is a conservative static scan of literal TeX
+references. It follows `\input` and `\include` recursively, confines resolved
+paths to the project root, refuses symbolic-link references, and reports
+references containing macros as warnings because evaluating TeX is outside
+Kicho's scope. A real build remains the authoritative compiler check.
+
+Both commands print their reports to standard output. Warnings return status
+`0`; failures or validation errors return status `1`.
 
 ---
 
@@ -457,11 +506,12 @@ Kicho should:
 - make destructive behavior visible
 - prefer reversible operations where practical
 
-Future commands such as `split`, `flatten`, and `archive` require especially careful file-safety design.
+Commands such as `split`, `flatten`, `archive`, and `submit` require especially
+careful file-safety design.
 
 ---
 
-## Future Command Design
+## File-Transformation Command Design
 
 ### `split`
 
@@ -731,6 +781,11 @@ Tracks implementation priorities and unfinished work.
 
 Defines rules for AI-assisted development.
 
+### `CHANGELOG.md` and `RELEASING.md`
+
+`CHANGELOG.md` records user-visible release history. `RELEASING.md` defines the
+repeatable release checklist and is not a feature roadmap.
+
 These roles should remain separate to avoid turning the README into a complete internal manual.
 
 ---
@@ -768,3 +823,7 @@ The following decisions are currently accepted:
 - Multi-file organization should remain optional.
 - Build artifacts belong in `build/`.
 - Cleaning must never remove source files.
+- `doctor` owns environment diagnostics; `check` owns detailed project validation.
+- Static validation reports only references it can resolve conservatively.
+- Command help is generated from metadata and runs before precondition checks.
+- The supported shell baseline is the macOS system Bash 3.2.
