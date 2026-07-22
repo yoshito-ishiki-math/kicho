@@ -78,6 +78,20 @@ The command fails if:
 The generated `build/` directory starts empty except for its tracked placeholder,
 even if the local template directory contains ignored build artifacts.
 
+Generated root documents do not contain a `% !TEX program` magic comment.
+Compilation mode is owned by `.latexmkrc`; editor integrations must invoke
+`latexmk` rather than selecting a TeX engine independently.
+
+The built-in templates include a LaTeX Workshop workspace configuration that:
+
+- uses the `latexmk` recipe for manual and automatic builds
+- disables TeX-program magic comments
+- passes the relative root filename through `%DOCFILE_EXT%`
+- points the integrated PDF viewer at `%DIR%/build`
+
+Using a relative filename avoids passing iCloud Drive paths containing spaces
+or literal `~` characters directly to LuaLaTeX.
+
 #### Exit Status
 
 | Code | Meaning |
@@ -123,6 +137,9 @@ The current project template uses:
 - `main.tex` as the main document
 
 Kicho does not directly duplicate the compilation settings stored in `.latexmkrc`.
+
+Editor recipes should likewise call `latexmk` and leave engine selection and
+flags to `.latexmkrc`.
 
 #### Future Configuration
 
@@ -403,6 +420,15 @@ Generated build artifacts should be placed in:
 ```text
 build/
 ```
+
+For the default main document, the compiled PDF is therefore:
+
+```text
+build/main.pdf
+```
+
+The absence of `main.pdf` in the project root is expected. Editor integrations
+should view `build/main.pdf` without changing the build destination.
 
 ---
 

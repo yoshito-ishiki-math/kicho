@@ -55,6 +55,16 @@ assert_contains() {
     fi
 }
 
+assert_not_contains() {
+    local unexpected="$1"
+    local path="$2"
+    local description="$3"
+
+    if grep -F -- "$unexpected" "$path" >/dev/null 2>&1; then
+        fail "$description: unexpected '$unexpected'"
+    fi
+}
+
 assert_not_exists() {
     local path="$1"
     local description="$2"
@@ -136,29 +146,57 @@ assert_status 0 'init project with spaces'
 assert_contains "Created project: $project" "$command_stdout" 'init success output'
 assert_file "$project/main.tex" 'initialized main.tex'
 assert_file "$project/.latexmkrc" 'initialized .latexmkrc'
+assert_file "$project/.vscode/settings.json" 'initialized VS Code settings'
 assert_file "$project/build/.gitkeep" 'initialized build placeholder'
 assert_contains '{amsart}' "$project/main.tex" 'default English template'
+assert_not_contains 'program = lualatex' "$project/main.tex" 'English template magic comment'
+assert_contains '"latex-workshop.latex.build.enableMagicComments": false' \
+    "$project/.vscode/settings.json" 'English template disables magic comments'
+assert_contains '"%DOCFILE_EXT%"' "$project/.vscode/settings.json" \
+    'English template uses relative root filename'
+assert_contains '"latex-workshop.latex.outDir": "%DIR%/build"' \
+    "$project/.vscode/settings.json" 'English template PDF output directory'
 assert_not_exists "$project/build/main.pdf" 'init excludes ignored PDF artifact'
+assert_not_exists "$project/main.pdf" 'init excludes root PDF'
 assert_not_exists "$project/build/main.aux" 'init excludes ignored auxiliary artifact'
 
 run_in "$test_root" "$KICHO" init "$project"
 assert_status 1 'init existing destination'
 assert_contains 'already exists' "$command_stderr" 'init existing-destination error'
 
-japanese_project="$test_root/日本語 論文"
+japanese_parent="$test_root/Mobile Documents/com~apple~CloudDocs"
+mkdir -p "$japanese_parent"
+japanese_project="$japanese_parent/日本語 論文"
 run_in "$test_root" "$KICHO" init --template japanese "$japanese_project"
 assert_status 0 'init Japanese project'
 assert_file "$japanese_project/main.tex" 'Japanese main.tex'
 assert_file "$japanese_project/preamble/packages.tex" 'Japanese packages.tex'
 assert_file "$japanese_project/preamble/macros.tex" 'Japanese macros.tex'
 assert_file "$japanese_project/preamble/theorem.tex" 'Japanese theorem.tex'
+assert_file "$japanese_project/.vscode/settings.json" 'Japanese VS Code settings'
 assert_file "$japanese_project/sections/introduction.tex" 'Japanese introduction.tex'
 assert_file "$japanese_project/build/.gitkeep" 'Japanese build placeholder'
 assert_contains '{jlreq}' "$japanese_project/main.tex" 'Japanese document class'
 assert_contains 'luatexja-fontspec' "$japanese_project/preamble/packages.tex" 'LuaLaTeX-ja package'
 assert_contains 'HaranoAjiMincho' "$japanese_project/preamble/packages.tex" 'Japanese main font'
 assert_contains '\newtheorem{theorem}{定理}' "$japanese_project/preamble/theorem.tex" 'Japanese theorem label'
+assert_not_contains 'program = lualatex' "$japanese_project/main.tex" 'Japanese template magic comment'
+assert_contains '"latex-workshop.latex.build.enableMagicComments": false' \
+    "$japanese_project/.vscode/settings.json" 'Japanese template disables magic comments'
+assert_contains '"%DOCFILE_EXT%"' "$japanese_project/.vscode/settings.json" \
+    'Japanese template uses relative root filename'
+assert_contains '"latex-workshop.latex.outDir": "%DIR%/build"' \
+    "$japanese_project/.vscode/settings.json" 'Japanese template PDF output directory'
 assert_not_exists "$japanese_project/build/main.pdf" 'Japanese init excludes PDF artifact'
+assert_not_exists "$japanese_project/main.pdf" 'Japanese init excludes root PDF'
+
+if command -v python3 >/dev/null 2>&1; then
+    if ! python3 -c 'import json, sys; [json.load(open(path, encoding="utf-8")) for path in sys.argv[1:]]' \
+        "$project/.vscode/settings.json" \
+        "$japanese_project/.vscode/settings.json"; then
+        fail 'generated VS Code settings are not valid JSON'
+    fi
+fi
 
 run_in "$test_root" "$KICHO" init --template unknown "$test_root/UnknownTemplate"
 assert_status 1 'init unknown template'

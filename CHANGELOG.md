@@ -2,6 +2,16 @@
 
 All notable user-visible changes to Kicho are documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Prevent LaTeX Workshop save-triggered builds from bypassing `latexmk` because
+  of a `% !TEX program` magic comment
+- Use a relative root filename in the bundled LaTeX Workshop recipe so projects
+  under iCloud Drive paths containing spaces or `~` build correctly
+- Point the LaTeX Workshop PDF viewer at the expected `build/main.pdf` output
+
 ## [0.2.0-alpha.1] - 2026-07-22
 
 ### Added

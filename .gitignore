@@ -3,6 +3,8 @@
 
 # VS Code
 .vscode/
+!templates/*/.vscode/
+!templates/*/.vscode/settings.json
 
 # LaTeX
 *.aux

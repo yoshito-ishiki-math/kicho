@@ -58,6 +58,7 @@ the new macOS CI workflow and the `check` MVP receive real-project use.
 - [x] Add ShellCheck to the local test harness
 - [x] Add macOS GitHub Actions with `/bin/bash`
 - [x] Audit README, SPEC, DESIGN, AI, TODO, and CHANGELOG
+- [x] Make LaTeX Workshop save builds use `latexmk` on iCloud Drive paths
 
 ### Before promoting to v0.2.0
 

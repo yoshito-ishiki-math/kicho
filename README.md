@@ -122,6 +122,28 @@ Pushes and pull requests run the same suite on macOS 14 with the system
 
 ---
 
+## VS Code and iCloud Drive
+
+The generated workspace settings make LaTeX Workshop use `latexmk` for both
+manual and save-triggered builds. They disable TeX-program magic comments and
+pass the relative filename `%DOCFILE_EXT%`, which avoids sending an absolute
+iCloud Drive path containing spaces or `~` directly to LuaLaTeX.
+
+The PDF viewer is configured to open `build/main.pdf`. Kicho intentionally does
+not generate `main.pdf` in the project root.
+
+Keep engine selection in `.latexmkrc`. Do not add a line such as this to
+`main.tex`:
+
+```tex
+% !TEX program = lualatex
+```
+
+If an older project exhibits this problem, remove the magic comment and use the
+workspace settings from a newly generated Kicho project.
+
+---
+
 ## Generated Project Structure
 
 ```

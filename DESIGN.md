@@ -215,6 +215,21 @@ templates/japanese-paper/   jlreq, LuaLaTeX-ja, Japanese
 selection belongs to `init`; build behavior remains owned by each template's
 `.latexmkrc`.
 
+Templates may include thin editor integration that selects `latexmk`, but they
+must not duplicate the engine or build flags stored in `.latexmkrc`. Root TeX
+files must not use `% !TEX program` magic comments because LaTeX Workshop gives
+those comments priority over its recipe during automatic builds.
+
+The LaTeX Workshop configuration disables magic-comment build selection and
+passes `%DOCFILE_EXT%` to `latexmk`. The editor runs from the root file's
+directory, so this keeps iCloud Drive paths containing spaces and literal `~`
+characters out of the TeX engine's input filename.
+
+The workspace setting `latex-workshop.latex.outDir` mirrors the conventional
+`build/` destination only so the editor can locate the PDF. It does not pass an
+output-directory option to `latexmk`; `.latexmkrc` remains authoritative for
+where and how compilation occurs.
+
 Documentation files belong to the repository itself and must not be copied into every generated paper project unless there is a specific reason.
 
 ---
@@ -263,6 +278,9 @@ Contains figures, diagrams, and other visual assets.
 ### `build/`
 
 Contains generated compilation files.
+
+The default compiled document is `build/main.pdf`. A root-level `main.pdf` is
+not part of the generated project contract.
 
 This directory is disposable and may be deleted by:
 
