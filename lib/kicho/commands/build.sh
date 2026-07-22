@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Implementation of `kicho build`.
 
 kicho_command_build_summary() {

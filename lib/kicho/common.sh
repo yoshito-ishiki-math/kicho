@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Common constants and functions for Kicho.
 
 readonly KICHO_VERSION="0.1.0"

@@ -453,31 +453,19 @@ Future commands such as `split`, `flatten`, and `archive` require especially car
 
 ### `split`
 
-The `split` command may convert a large single-file document into a multi-file project.
-
-Potential responsibilities include:
-
-- identifying major document sections
-- moving section contents into separate files
-- inserting `\input` statements
-- preserving compilability
-- creating backups before modification
-
-The exact behavior is not yet specified.
+The `split` command uses explicit `% kicho:section NAME` and `% kicho:end`
+markers. Explicit markers avoid attempting to parse arbitrary TeX structure.
+All markers and output paths are validated before writes begin. The original
+`main.tex` is preserved as a backup, and existing section files are never
+overwritten.
 
 ### `flatten`
 
-The `flatten` command may produce a submission-ready single-file document.
-
-Potential responsibilities include:
-
-- resolving `\input` and `\include`
-- copying required bibliography files
-- collecting figures
-- preparing a self-contained submission directory
-- avoiding editor-specific or local-only dependencies
-
-Flattening should produce new output rather than destructively rewriting the working project.
+The `flatten` command recursively expands full-line `\input` and `\include`
+statements. Restricting expansion to complete lines keeps the MVP behavior
+explicit and avoids pretending to be a complete TeX parser. Paths are confined
+to the project, cycles are rejected, and output is written to `dist/main.tex`
+without changing source files.
 
 ### `archive`
 
@@ -501,17 +489,10 @@ archiving.
 
 ### `submit`
 
-The `submit` command may prepare files for journal or preprint submission.
-
-It should be built on top of lower-level operations such as:
-
-```text
-build
-flatten
-archive
-```
-
-The command should not directly upload files until submission behavior has been carefully designed.
+The `submit` command prepares a new local `submission/` directory containing a
+flattened main document, bibliography, figures, build configuration, compiled
+PDF when available, and a JSON manifest. It never uploads files and never
+overwrites an existing package.
 
 ---
 

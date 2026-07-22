@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Implementation of `kicho clean`.
 
 kicho_command_clean_summary() {

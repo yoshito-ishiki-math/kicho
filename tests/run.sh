@@ -13,6 +13,17 @@ KICHO_ROOT="$(
 
 status=0
 
+if ! command -v shellcheck >/dev/null 2>&1; then
+    printf 'ShellCheck is required to run the test suite.\n' >&2
+    status=1
+elif ! shellcheck -x \
+    "$KICHO_ROOT/bin/kicho" \
+    "$KICHO_ROOT/lib/kicho/"*.sh \
+    "$KICHO_ROOT/lib/kicho/commands/"*.sh \
+    "$TEST_DIR/"*.sh; then
+    status=1
+fi
+
 if ! bash -n \
     "$KICHO_ROOT/bin/kicho" \
     "$KICHO_ROOT/lib/kicho/"*.sh \
@@ -23,7 +34,8 @@ fi
 
 for test_file in \
     "$TEST_DIR/cli_test.sh" \
-    "$TEST_DIR/archive_test.sh"; do
+    "$TEST_DIR/archive_test.sh" \
+    "$TEST_DIR/workflow_test.sh"; do
     if ! bash "$test_file"; then
         status=1
     fi

@@ -149,6 +149,8 @@ assert_contains "'latexmk' is not installed" "$command_stderr" 'missing latexmk 
 fake_bin="$test_root/fake-bin"
 latexmk_log="$test_root/latexmk.log"
 mkdir -p "$fake_bin"
+# The single-quoted strings below are the literal contents of the fake command.
+# shellcheck disable=SC2016
 {
     printf '#!/usr/bin/env bash\n'
     printf 'printf "%%s\\n" "$*" >> "$KICHO_TEST_LATEXMK_LOG"\n'
@@ -204,10 +206,6 @@ assert_not_exists "$project/build" 'successful clean removes build directory'
 assert_contains '-C' "$latexmk_log" 'clean invokes latexmk -C'
 
 for command in split flatten submit; do
-    run_in "$project" "$KICHO" "$command"
-    assert_status 0 "$command placeholder"
-    assert_contains "$command: not implemented yet." "$command_stdout" "$command placeholder output"
-
     run_in "$project" "$KICHO" "$command" unexpected
     assert_status 1 "$command with argument"
     assert_contains "$command does not accept arguments" "$command_stderr" "$command argument error"

@@ -94,27 +94,27 @@ Goal: support transitions between single-file and multi-file LaTeX projects.
 
 ### `split`
 
-- [ ] Define the exact behavior of `kicho split`
-- [ ] Decide which section commands are supported
-- [ ] Decide how output filenames are generated
-- [ ] Insert `\input` commands safely
-- [ ] Preserve document order
-- [ ] Create a backup before modifying source files
-- [ ] Avoid overwriting existing section files
-- [ ] Verify that the resulting project still builds
-- [ ] Decide how comments and custom macros are preserved
+- [x] Define marker-based behavior for `kicho split`
+- [x] Use explicit markers instead of parsing section commands
+- [x] Generate filenames from validated marker names
+- [x] Insert `\input` commands safely
+- [x] Preserve document order
+- [x] Create a backup before modifying source files
+- [x] Avoid overwriting existing section files
+- [x] Verify that the resulting project still builds
+- [x] Preserve marked content line-for-line
 
 ### `flatten`
 
-- [ ] Define the exact behavior of `kicho flatten`
-- [ ] Resolve `\input` commands
-- [ ] Resolve `\include` commands
-- [ ] Preserve comments where practical
-- [ ] Collect required bibliography files
-- [ ] Collect required figures
-- [ ] Create a separate submission directory
-- [ ] Avoid modifying the working project
-- [ ] Verify that flattened output builds independently
+- [x] Define the MVP behavior of `kicho flatten`
+- [x] Resolve full-line `\input` commands
+- [x] Resolve full-line `\include` commands
+- [x] Preserve non-expanded lines
+- [x] Collect required bibliography files in `submit`
+- [x] Collect required figures in `submit`
+- [x] Create a separate submission directory
+- [x] Avoid modifying the working project
+- [x] Verify that flattened output builds independently
 
 ---
 
@@ -137,14 +137,14 @@ Goal: support reproducible project snapshots and submission-ready packages.
 
 ### `submit`
 
-- [ ] Define the scope of `kicho submit`
+- [x] Define the MVP scope of `kicho submit`
 - [ ] Build the current project before packaging
-- [ ] Flatten the project when required
-- [ ] Collect submission files
-- [ ] Validate the generated package
+- [x] Flatten the project when packaging
+- [x] Collect submission files
+- [x] Validate the generated package
 - [ ] Support submission profiles in the future
-- [ ] Avoid automatic uploading in the initial implementation
-- [ ] Produce a clear summary of generated files
+- [x] Avoid automatic uploading in the initial implementation
+- [x] Produce a clear output-directory summary
 
 ---
 
@@ -233,7 +233,8 @@ Possible future work:
 - [ ] Keep command functions small and independent
 - [ ] Separate command dispatch from command implementation
 - [ ] Add reusable error and logging functions
-- [ ] Add a test harness
+- [x] Add a test harness
+- [x] Add ShellCheck to the test harness
 - [ ] Evaluate shell limitations as features grow
 - [ ] Consider another implementation language only when necessary
 - [ ] Preserve the existing CLI if the implementation language changes

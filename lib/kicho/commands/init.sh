@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Implementation of `kicho init`.
 
 kicho_command_init_summary() {

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Implementation of `kicho doctor`.
 
 kicho_command_doctor_summary() {

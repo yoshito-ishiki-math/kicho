@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Command discovery and dispatch for Kicho.
 
 readonly KICHO_COMMAND_DIR="$KICHO_LIB_DIR/commands"

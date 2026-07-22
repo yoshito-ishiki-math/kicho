@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Implementation of `kicho archive`.
 
 kicho_command_archive_summary() {
@@ -105,7 +106,7 @@ kicho_json_escape() {
 
         case "$character" in
             '"') result+='\"' ;;
-            \\) result+='\\' ;;
+            \\) result+="\\\\" ;;
             $'\b') result+='\b' ;;
             $'\f') result+='\f' ;;
             $'\n') result+='\n' ;;

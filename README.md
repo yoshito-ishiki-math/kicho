@@ -18,15 +18,17 @@ environment diagnostics, and project snapshots.
 - Clean generated build files
 - Check the local environment with `doctor`
 - Create source, PDF, and metadata snapshots with `archive`
+- Split explicitly marked source blocks with `split`
+- Flatten full-line `\input` and `\include` commands with `flatten`
+- Create a local submission package with `submit`
 - Show command-specific help with `help COMMAND`
 - Built-in help (`--help`)
 - Version information (`--version`)
 
 ### Planned
 
-- Split large documents
-- Flatten projects for journal submission
-- Submission workflow
+- More complete TeX-aware transformations
+- Submission profiles
 - Project management utilities
 
 ---
@@ -84,7 +86,14 @@ Show available commands.
 
 ## Testing
 
-Run the complete syntax and integration test suite from the repository root.
+Install the development-time shell linter on macOS.
+
+```bash
+brew install shellcheck
+```
+
+Then run the complete lint, syntax, and integration test suite from the
+repository root.
 
 ```bash
 bash tests/run.sh
@@ -127,8 +136,8 @@ archive
 submit
 ```
 
-Current releases implement the basic project commands and archive snapshots.
-Document transformation and submission functionality remain planned.
+Current releases implement the basic project commands, archive snapshots,
+marker-based splitting, safe flattening, and local submission packages.
 
 ---
 

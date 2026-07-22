@@ -399,20 +399,61 @@ already exists.
 
 ---
 
-## Placeholder Commands
+## `split` Command
 
-The following command names and help entries exist, but their functional
-behavior is not currently implemented:
+Split explicitly marked blocks from `main.tex` into `sections/*.tex`.
 
-```bash
-kicho split
-kicho flatten
-kicho submit
+```text
+% kicho:section introduction
+Section contents.
+% kicho:end
 ```
 
-Their detailed behavior is intentionally left unspecified until their design is finalized.
+The marker name must match `[a-z0-9][a-z0-9-]*`. Each opening marker must have
+one closing marker, blocks cannot be nested, and names cannot be repeated.
 
-Documentation must clearly distinguish implemented commands from planned commands.
+After a successful split, the marked block is replaced with:
+
+```tex
+\input{sections/introduction}
+```
+
+and its contents are written to `sections/introduction.tex`. Kicho validates all
+markers and destinations before changing the project, refuses to overwrite an
+existing section file, and saves the original as `main.tex.kicho-backup`.
+
+---
+
+## `flatten` Command
+
+Create `dist/main.tex` without modifying the project source.
+
+The command recursively expands `\input{...}` and `\include{...}` statements
+that occupy a complete source line. A missing file, an include cycle, an
+absolute path, or a path containing a `..` component is an error. `.tex` is
+appended when the referenced path has no extension.
+
+Kicho refuses to overwrite an existing `dist/main.tex`.
+
+---
+
+## `submit` Command
+
+Create a local submission package without uploading it anywhere.
+
+```text
+submission/
+├── main.tex
+├── bib/
+├── figures/
+├── main.pdf          when build/main.pdf exists
+├── .latexmkrc
+└── manifest.json
+```
+
+`main.tex` is generated using the same expansion rules as `flatten`. Missing
+optional files produce warnings. Kicho refuses to overwrite an existing
+`submission/` directory and does not modify source files or Git state.
 
 ---
 

@@ -210,9 +210,9 @@ assert_contains 'Warning: build/main.pdf not found.' "$test_root/missing-pdf.std
 assert_file "$missing_pdf_archive/metadata/archive.json"
 assert_not_contains '"git": {' "$missing_pdf_archive/metadata/archive.json"
 
-# shellcheck source=../lib/kicho/common.sh
+# shellcheck source=/dev/null
 source "$KICHO_ROOT/lib/kicho/common.sh"
-# shellcheck source=../lib/kicho/commands/archive.sh
+# shellcheck source=/dev/null
 source "$KICHO_ROOT/lib/kicho/commands/archive.sh"
 
 json_input=$'論文 quote" slash\\ line\n tab\t control\001'
