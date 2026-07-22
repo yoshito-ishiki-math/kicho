@@ -61,7 +61,7 @@ the new macOS CI workflow and the `check` MVP receive real-project use.
 
 ### Before promoting to v0.2.0
 
-- [ ] Confirm the GitHub Actions workflow passes after push
+- [x] Confirm the GitHub Actions workflow passes after push
 - [ ] Use the prerelease on representative English and Japanese projects
 - [ ] Fix any diagnostics that produce misleading results on real projects
 - [ ] Promote the version to `0.2.0`
