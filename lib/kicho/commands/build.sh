@@ -1,6 +1,10 @@
 # Implementation of `kicho build`.
 
-kicho_build() {
+kicho_command_build_summary() {
+    printf 'Build the current LaTeX project.\n'
+}
+
+kicho_command_build() {
     kicho_require_project
     kicho_require_latexmk
 

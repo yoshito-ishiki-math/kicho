@@ -2,34 +2,34 @@
 
 readonly KICHO_VERSION="0.1.0"
 
-kicho_show_help() {
-    cat <<'EOF'
-Kicho — Workflow manager for LaTeX research projects.
-
-Usage:
-    kicho init PROJECT
-    kicho build
-    kicho clean
-    kicho --help
-    kicho --version
-
-Commands:
-    init PROJECT     Create a new LaTeX research project.
-    build            Build the current LaTeX project.
-    clean            Remove generated LaTeX files.
-
-Options:
-    -h, --help       Show this help message.
-    -v, --version    Show version information.
-EOF
+kicho_error() {
+    printf 'Error: %s\n' "$1" >&2
 }
 
 kicho_show_version() {
     printf 'kicho %s\n' "$KICHO_VERSION"
 }
 
-kicho_error() {
-    printf 'Error: %s\n' "$1" >&2
+kicho_show_help() {
+    cat <<'EOF'
+Kicho — Workflow manager for LaTeX research projects.
+
+Usage:
+    kicho COMMAND [ARGS]
+    kicho --help
+    kicho --version
+
+Commands:
+EOF
+
+    kicho_list_commands
+
+    cat <<'EOF'
+
+Options:
+    -h, --help       Show this help message.
+    -v, --version    Show version information.
+EOF
 }
 
 kicho_require_project() {

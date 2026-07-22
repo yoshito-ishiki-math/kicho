@@ -1,6 +1,10 @@
 # Implementation of `kicho clean`.
 
-kicho_clean() {
+kicho_command_clean_summary() {
+    printf 'Remove generated LaTeX files.\n'
+}
+
+kicho_command_clean() {
     kicho_require_project
     kicho_require_latexmk
 

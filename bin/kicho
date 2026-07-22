@@ -15,42 +15,7 @@ KICHO_ROOT="$(
 KICHO_LIB_DIR="$KICHO_ROOT/lib/kicho"
 
 source "$KICHO_LIB_DIR/common.sh"
-source "$KICHO_LIB_DIR/init.sh"
-source "$KICHO_LIB_DIR/build.sh"
-source "$KICHO_LIB_DIR/clean.sh"
+source "$KICHO_LIB_DIR/loader.sh"
 
-main() {
-    case "${1:-}" in
-        "")
-            kicho_show_help
-            ;;
-
-        -h|--help)
-            kicho_show_help
-            ;;
-
-        -v|--version)
-            kicho_show_version
-            ;;
-
-        init)
-            kicho_init "${2:-}"
-            ;;
-
-        build)
-            kicho_build
-            ;;
-
-        clean)
-            kicho_clean
-            ;;
-
-        *)
-            kicho_error "unknown command '$1'."
-            printf "Run 'kicho --help' for usage.\n" >&2
-            exit 1
-            ;;
-    esac
-}
-
-main "$@"
+kicho_load_commands
+kicho_dispatch "$@"

@@ -1,6 +1,10 @@
 # Implementation of `kicho init`.
 
-kicho_init() {
+kicho_command_init_summary() {
+    printf 'Create a new LaTeX research project.\n'
+}
+
+kicho_command_init() {
     local project="${1:-}"
 
     if [[ -z "$project" ]]; then
