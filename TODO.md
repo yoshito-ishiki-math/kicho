@@ -81,6 +81,13 @@ the new macOS CI workflow and the `check` MVP receive real-project use.
 - [ ] Add missing citation and reference diagnostics only if a reliable existing
       TeX tool can provide them
 
+### Source Organization
+
+- [ ] Add a safe command for combining selected section files in a specified order
+- [ ] Extend `split` to operate on a specified TeX file, not only `main.tex`
+- [ ] Preserve source files by default when combining sections
+- [ ] Refuse existing output destinations and avoid rewriting `main.tex` implicitly
+
 ### Archiving and Submission
 
 - [ ] Add an optional compressed archive format
@@ -93,6 +100,14 @@ the new macOS CI workflow and the `check` MVP receive real-project use.
 - [ ] Make the main TeX file configurable
 - [ ] Make generated output locations configurable
 - [ ] Define configuration precedence, validation, and migration
+
+### Updating and Migration
+
+- [ ] Define the purpose of `kicho update`
+- [ ] Distinguish updating the Kicho CLI from upgrading an existing project
+- [ ] Compare project-managed files with the latest template before migration
+- [ ] Back up files and require explicit approval before changing an existing project
+- [ ] Limit initial project upgrades to Kicho-managed configuration files
 
 ### CLI
 
@@ -108,6 +123,28 @@ the new macOS CI workflow and the `check` MVP receive real-project use.
 - [ ] Decide the installation and upgrade mechanism
 - [ ] Consider Homebrew distribution
 - [ ] Define uninstall instructions
+
+### GitHub Integration
+
+- [ ] Decide whether Kicho should provide or document GitHub Skills
+- [ ] Define the concrete GitHub workflow problem before adding an integration
+
+### VS Code Companion Extension — Phase 2
+
+Priority: low. Complete and stabilize the CLI first.
+
+- [ ] Evaluate a separate Kicho Companion extension for VS Code
+- [ ] Keep Kicho CLI as the only implementation of workflow logic
+- [ ] Make the extension invoke commands such as `kicho build`, `clean`, `split`,
+      `flatten`, and `archive` instead of reimplementing them
+- [ ] Add a status-bar control for LaTeX Workshop auto-build
+- [ ] Toggle `latex-workshop.latex.autoBuild.run` between `onSave`,
+      `onFileChange`, and `never`
+- [ ] Provide configurable keyboard shortcuts for enabling and disabling auto-build
+- [ ] Expose Kicho commands through the VS Code command palette
+- [ ] Detect the Kicho executable and project root clearly
+- [ ] Show CLI standard output, standard error, and exit status without changing them
+- [ ] Test that extension behavior remains a thin frontend over the CLI
 
 ---
 
