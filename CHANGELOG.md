@@ -4,6 +4,8 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-alpha.2] - 2026-07-30
+
 ### Fixed
 
 - Prevent LaTeX Workshop save-triggered builds from bypassing `latexmk` because

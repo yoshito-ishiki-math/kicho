@@ -36,9 +36,10 @@ Kicho currently implements:
 
 ## v0.2 Series — Workflow and Diagnostics
 
-`v0.2.0-alpha.1` established the workflow and diagnostics baseline. Fixes found
-through real project use should be released as `v0.2.0-alpha.2` before the CLI
-moves to beta and then to the stable `v0.2.0` release.
+`v0.2.0-alpha.1` established the workflow and diagnostics baseline. Compatibility
+fixes found through real project use are released in `v0.2.0-alpha.2`. Confirm
+that prerelease on active projects before the CLI moves to beta and then to the
+stable `v0.2.0` release.
 
 ### Completed for the prerelease
 
@@ -66,7 +67,7 @@ moves to beta and then to the stable `v0.2.0` release.
 - [x] Confirm the GitHub Actions workflow passes after push
 - [x] Use the prerelease on representative English and Japanese projects
 - [x] Fix diagnostics found to be misleading during representative project use
-- [ ] Release the accumulated compatibility fixes as `v0.2.0-alpha.2`
+- [x] Release the accumulated compatibility fixes as `v0.2.0-alpha.2`
 - [ ] Confirm `v0.2.0-alpha.2` on active English and Japanese projects
 - [ ] Freeze the command names and primary output formats for the beta
 - [ ] Promote the version to `v0.2.0-beta.1`

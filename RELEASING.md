@@ -3,11 +3,10 @@
 Kicho uses semantic versioning. Prerelease identifiers are used while a new
 minor release is receiving CI and real-project validation.
 
-The current development version is `0.2.0-alpha.1`. The next planned release is
-`0.2.0-alpha.2`, containing compatibility fixes found through representative
-project use. After that prerelease is confirmed on active English and Japanese
-projects, freeze the command names and primary output formats before promoting
-Kicho to `0.2.0-beta.1`.
+The current prerelease is `0.2.0-alpha.2`, containing compatibility fixes found
+through representative project use. After it is confirmed on active English
+and Japanese projects, freeze the command names and primary output formats
+before promoting Kicho to `0.2.0-beta.1`.
 
 ## Release Checklist
 
