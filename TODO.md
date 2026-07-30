@@ -135,8 +135,10 @@ moves to beta and then to the stable `v0.2.0` release.
 
 ### GitHub Integration
 
-- [ ] Decide whether Kicho should provide or document GitHub Skills
-- [ ] Define the concrete GitHub workflow problem before adding an integration
+- [x] Provide a repository-local Git Skill for safe Kicho validation, commits,
+      pushes, tags, and GitHub Actions verification
+- [x] Keep the integration focused on coordinating Git and GitHub rather than
+      reimplementing their behavior in Kicho
 
 ### VS Code Companion Extension — Phase 2
 

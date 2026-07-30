@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kicho Git Workflow"
+  short_description: "Validate and publish Kicho changes safely"
+  default_prompt: "Use $kicho-git-workflow to validate, commit, push, and verify my Kicho changes."
