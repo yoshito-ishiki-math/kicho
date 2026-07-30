@@ -79,16 +79,16 @@ kicho_command_init() {
         esac
     done
 
-    if [[ -z "$project" ]]; then
-        kicho_error "project name required."
-        printf '\nUsage:\n    kicho init PROJECT\n' >&2
-        return 1
-    fi
-
     local template_dir
     if ! template_dir="$(kicho_init_template_directory "$template")"; then
         kicho_error "unknown project template '$template'."
         printf "Available templates: english, japanese.\n" >&2
+        return 1
+    fi
+
+    if [[ -z "$project" ]]; then
+        kicho_error "project name required."
+        printf "Run 'kicho help init' for usage.\n" >&2
         return 1
     fi
 

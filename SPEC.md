@@ -75,6 +75,10 @@ The command fails if:
 - a file or directory already exists at the destination
 - the project template cannot be copied
 
+Option values are validated before required positional arguments. For example,
+`kicho init --template unknown` reports the unknown template rather than only
+reporting that `PROJECT` is missing.
+
 The generated `build/` directory starts empty except for its tracked placeholder,
 even if the local template directory contains ignored build artifacts.
 

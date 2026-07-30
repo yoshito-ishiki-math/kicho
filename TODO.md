@@ -34,10 +34,11 @@ Kicho currently implements:
 
 ---
 
-## v0.2.0-alpha.1 — Workflow and Diagnostics
+## v0.2 Series — Workflow and Diagnostics
 
-The next version is `0.2.0-alpha.1`. The prerelease label is appropriate while
-the new macOS CI workflow and the `check` MVP receive real-project use.
+`v0.2.0-alpha.1` established the workflow and diagnostics baseline. Fixes found
+through real project use should be released as `v0.2.0-alpha.2` before the CLI
+moves to beta and then to the stable `v0.2.0` release.
 
 ### Completed for the prerelease
 
@@ -60,11 +61,19 @@ the new macOS CI workflow and the `check` MVP receive real-project use.
 - [x] Audit README, SPEC, DESIGN, AI, TODO, and CHANGELOG
 - [x] Make LaTeX Workshop save builds use `latexmk` on iCloud Drive paths
 
-### Before promoting to v0.2.0
+### Before promoting to v0.2.0-beta.1
 
 - [x] Confirm the GitHub Actions workflow passes after push
-- [ ] Use the prerelease on representative English and Japanese projects
-- [ ] Fix any diagnostics that produce misleading results on real projects
+- [x] Use the prerelease on representative English and Japanese projects
+- [x] Fix diagnostics found to be misleading during representative project use
+- [ ] Release the accumulated compatibility fixes as `v0.2.0-alpha.2`
+- [ ] Confirm `v0.2.0-alpha.2` on active English and Japanese projects
+- [ ] Freeze the command names and primary output formats for the beta
+- [ ] Promote the version to `v0.2.0-beta.1`
+
+### Before promoting to v0.2.0
+
+- [ ] Resolve beta regressions without adding unrelated features
 - [ ] Promote the version to `0.2.0`
 - [ ] Add the final changelog date and create the annotated release tag
 

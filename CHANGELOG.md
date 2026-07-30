@@ -11,6 +11,7 @@ All notable user-visible changes to Kicho are documented in this file.
 - Use a relative root filename in the bundled LaTeX Workshop recipe so projects
   under iCloud Drive paths containing spaces or `~` build correctly
 - Point the LaTeX Workshop PDF viewer at the expected `build/main.pdf` output
+- Report an unknown `init` template clearly even when the project name is omitted
 
 ## [0.2.0-alpha.1] - 2026-07-22
 

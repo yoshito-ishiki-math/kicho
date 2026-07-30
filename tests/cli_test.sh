@@ -135,6 +135,7 @@ assert_contains "unknown command 'missing'" "$command_stderr" 'unknown help comm
 run_in "$test_root" "$KICHO" init
 assert_status 1 'init without project'
 assert_contains 'project name required' "$command_stderr" 'init missing-project error'
+assert_contains "Run 'kicho help init' for usage." "$command_stderr" 'init missing-project help'
 
 run_in "$test_root" "$KICHO" init One Two
 assert_status 1 'init with extra argument'
@@ -202,6 +203,11 @@ run_in "$test_root" "$KICHO" init --template unknown "$test_root/UnknownTemplate
 assert_status 1 'init unknown template'
 assert_contains "unknown project template 'unknown'" "$command_stderr" 'unknown template error'
 assert_not_exists "$test_root/UnknownTemplate" 'unknown template destination'
+
+run_in "$test_root" "$KICHO" init --template ghsps
+assert_status 1 'init unknown template without project'
+assert_contains "unknown project template 'ghsps'" "$command_stderr" \
+    'unknown template takes priority over missing project'
 
 run_in "$test_root" "$KICHO" init --template
 assert_status 1 'init missing template value'
