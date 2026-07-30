@@ -3,9 +3,11 @@
 Kicho uses semantic versioning. Prerelease identifiers are used while a new
 minor release is receiving CI and real-project validation.
 
-The next version is `0.2.0-alpha.1`. It should be promoted to `0.2.0` after the
-macOS workflow passes and the diagnostics have been exercised on representative
-English and Japanese projects.
+The current development version is `0.2.0-alpha.1`. The next planned release is
+`0.2.0-alpha.2`, containing compatibility fixes found through representative
+project use. After that prerelease is confirmed on active English and Japanese
+projects, freeze the command names and primary output formats before promoting
+Kicho to `0.2.0-beta.1`.
 
 ## Release Checklist
 
@@ -24,8 +26,8 @@ English and Japanese projects.
 8. Create an annotated `vVERSION` tag and push it:
 
    ```bash
-   git tag -a v0.2.0-alpha.1 -m "Kicho v0.2.0-alpha.1"
-   git push origin v0.2.0-alpha.1
+   git tag -a vVERSION -m "Kicho vVERSION"
+   git push origin vVERSION
    ```
 
 9. Create the corresponding GitHub release from the CHANGELOG entry.
