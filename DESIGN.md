@@ -645,6 +645,12 @@ Archive
 
 Kicho focuses on managing the project and its workflow, rather than every aspect of the research process.
 
+For arXiv preparation, Kicho packages files for the existing arXiv submission
+workflow; it does not upload or submit on the user's behalf. Metadata extraction
+is intentionally limited to common literal TeX forms. A project-root
+`arxiv-metadata.txt` remains human-editable and authoritative so Kicho does not
+grow into a general TeX parser or silently reinterpret author metadata.
+
 ---
 
 # Responsibilities

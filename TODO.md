@@ -102,6 +102,7 @@ stable `v0.2.0` release.
 
 - [ ] Add an optional compressed archive format
 - [ ] Decide whether `submit` should build before packaging
+- [x] Add an arXiv source ZIP and reusable metadata worksheet
 - [ ] Add submission profiles only after concrete journal requirements are known
 
 ### Configuration

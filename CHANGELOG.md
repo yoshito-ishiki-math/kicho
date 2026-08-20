@@ -4,6 +4,11 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add `kicho submit --arxiv` for a flattened source ZIP containing `main.bbl`
+  instead of `.bib` files, plus a reusable metadata worksheet for manual review
+
 ## [0.2.0-alpha.2] - 2026-07-30
 
 ### Fixed

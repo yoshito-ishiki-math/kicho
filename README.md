@@ -24,6 +24,7 @@ and local submission packages.
 - Split explicitly marked source blocks with `split`
 - Flatten full-line `\input` and `\include` commands with `flatten`
 - Create a local submission package with `submit`
+- Create an arXiv source ZIP and metadata worksheet with `submit --arxiv`
 - Show command-specific help with `help COMMAND`
 - Show command-specific help with `COMMAND --help`
 - Built-in help (`--help`)
@@ -93,6 +94,17 @@ Create a snapshot of the source, compiled PDF, and project metadata.
 ```bash
 ../bin/kicho archive
 ```
+
+Prepare an arXiv upload ZIP. Build first so `build/main.bbl` is current.
+
+```bash
+../bin/kicho build
+../bin/kicho submit --arxiv
+```
+
+The command keeps `.bib` files out of the upload ZIP and includes `main.bbl`.
+It also creates a project-root `arxiv-metadata.txt` draft for review and reuse.
+Kicho does not upload the package.
 
 Show available commands.
 

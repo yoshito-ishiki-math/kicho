@@ -580,6 +580,33 @@ submission/
 optional files produce warnings. Kicho refuses to overwrite an existing
 `submission/` directory and does not modify source files or Git state.
 
+### arXiv submission package
+
+`kicho submit --arxiv` creates an arXiv upload archive and a separate metadata
+worksheet:
+
+```text
+submission/
+├── arxiv-source.zip
+├── arxiv-metadata.txt
+└── manifest.json
+```
+
+The ZIP contains flattened `main.tex`, `build/main.bbl` renamed to `main.bbl`,
+the `figures/` directory, and top-level `.sty`, `.cls`, and `.bst` files. It
+does not contain `.bib` files, the built PDF, `.latexmkrc`, the manifest, the
+metadata worksheet, or hidden files. If the document uses a bibliography and
+`build/main.bbl` is missing, the command fails and asks the user to build first.
+
+When a project-root `arxiv-metadata.txt` exists, it is the user-maintained
+source of truth and is copied unchanged. Otherwise Kicho creates a draft from
+simple `\title`, `\author`, `abstract`, `\subjclass`, and `\keywords` forms in
+the flattened source, saves that draft in the project root, and places a copy
+beside the ZIP. Extraction is deliberately best-effort: fields that cannot be
+read are marked for manual completion. Kicho warns about incomplete fields,
+non-ASCII characters, and abstracts over 1920 characters. The metadata file is
+not part of the arXiv upload archive.
+
 ---
 
 ## Compatibility Policy

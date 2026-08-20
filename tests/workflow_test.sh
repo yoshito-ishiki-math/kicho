@@ -88,6 +88,24 @@ assert_same() {
     fi
 }
 
+assert_zip_contains() {
+    local expected="$1"
+    local archive="$2"
+
+    if ! unzip -Z1 "$archive" | grep -Fx -- "$expected" >/dev/null 2>&1; then
+        fail "'$expected' not found in $archive"
+    fi
+}
+
+assert_zip_not_contains() {
+    local unexpected="$1"
+    local archive="$2"
+
+    if unzip -Z1 "$archive" | grep -Fx -- "$unexpected" >/dev/null 2>&1; then
+        fail "'$unexpected' unexpectedly found in $archive"
+    fi
+}
+
 create_project_root() {
     local project="$1"
 
@@ -264,6 +282,89 @@ assert_contains 'Warning: build/main.pdf not found.' "$command_stderr"
 assert_file "$submit_without_pdf/submission/main.tex"
 assert_file "$submit_without_pdf/submission/manifest.json"
 assert_not_exists "$submit_without_pdf/submission/main.pdf"
+
+arxiv_project="$test_root/Arxiv Paper"
+create_project_root "$arxiv_project"
+mkdir -p "$arxiv_project/parts" "$arxiv_project/bib" \
+    "$arxiv_project/figures" "$arxiv_project/build"
+{
+    printf '\\documentclass{amsart}\n'
+    printf '\\title{A Submission Title}\n'
+    printf '\\author{First Author}\n'
+    printf '\\author{Second Author}\n'
+    printf '\\subjclass[2020]{Primary 54E35; Secondary 54B20}\n'
+    printf '\\keywords{metric geometry, hyperspaces}\n'
+    printf '\\begin{document}\n'
+    printf '\\begin{abstract}\n'
+    printf 'A submission abstract.\n'
+    printf '\\end{abstract}\n'
+    printf '\\input{parts/body}\n'
+    printf '\\printbibliography\n'
+    printf '\\end{document}\n'
+} > "$arxiv_project/main.tex"
+printf 'BODY\n' > "$arxiv_project/parts/body.tex"
+printf 'BIB SOURCE\n' > "$arxiv_project/bib/references.bib"
+printf 'BBL OUTPUT\n' > "$arxiv_project/build/main.bbl"
+printf 'FIGURE\n' > "$arxiv_project/figures/figure.txt"
+printf 'hidden\n' > "$arxiv_project/figures/.gitkeep"
+
+run_in "$arxiv_project" "$KICHO" submit --arxiv
+assert_status 0 'arXiv submit package creation'
+assert_file "$arxiv_project/submission/arxiv-source.zip"
+assert_file "$arxiv_project/submission/arxiv-metadata.txt"
+assert_file "$arxiv_project/submission/manifest.json"
+assert_file "$arxiv_project/arxiv-metadata.txt"
+assert_contains 'A Submission Title' "$arxiv_project/arxiv-metadata.txt"
+assert_contains 'First Author, Second Author' "$arxiv_project/arxiv-metadata.txt"
+assert_contains 'A submission abstract.' "$arxiv_project/arxiv-metadata.txt"
+assert_contains 'Primary 54E35; Secondary 54B20' "$arxiv_project/arxiv-metadata.txt"
+assert_contains 'metric geometry, hyperspaces' "$arxiv_project/arxiv-metadata.txt"
+assert_zip_contains 'main.tex' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_contains 'main.bbl' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_contains 'figures/figure.txt' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_not_contains 'bib/references.bib' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_not_contains 'main.pdf' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_not_contains '.latexmkrc' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_not_contains 'figures/.gitkeep' "$arxiv_project/submission/arxiv-source.zip"
+assert_zip_not_contains 'arxiv-metadata.txt' "$arxiv_project/submission/arxiv-source.zip"
+
+arxiv_existing_metadata="$test_root/ArxivExistingMetadata"
+create_project_root "$arxiv_existing_metadata"
+{
+    printf '\\documentclass{article}\n'
+    printf '\\begin{document}\n'
+    printf 'No metadata commands.\n'
+    printf '\\end{document}\n'
+} > "$arxiv_existing_metadata/main.tex"
+{
+    printf 'Title:\nCurated Title\n\n'
+    printf 'Authors:\nCurated Author\n\n'
+    printf 'Abstract:\nCurated abstract.\n\n'
+    printf 'Comments:\n12 pages\n\n'
+    printf 'MSC-class:\n54E35 (Primary)\n\n'
+    printf 'Keywords:\nmetric spaces\n'
+} > "$arxiv_existing_metadata/arxiv-metadata.txt"
+
+run_in "$arxiv_existing_metadata" "$KICHO" submit --arxiv
+assert_status 0 'arXiv submit reuses curated metadata'
+assert_same \
+    "$arxiv_existing_metadata/arxiv-metadata.txt" \
+    "$arxiv_existing_metadata/submission/arxiv-metadata.txt" \
+    'arXiv submission metadata differs from curated source'
+
+arxiv_missing_bbl="$test_root/ArxivMissingBbl"
+create_project_root "$arxiv_missing_bbl"
+{
+    printf '\\documentclass{article}\n'
+    printf '\\begin{document}\n'
+    printf '\\bibliography{bib/references}\n'
+    printf '\\end{document}\n'
+} > "$arxiv_missing_bbl/main.tex"
+
+run_in "$arxiv_missing_bbl" "$KICHO" submit --arxiv
+assert_status 1 'arXiv submit requires bbl for bibliography'
+assert_contains 'build/main.bbl was not found' "$command_stderr"
+assert_not_exists "$arxiv_missing_bbl/submission"
 
 if ((failures > 0)); then
     printf '%d workflow test(s) failed.\n' "$failures" >&2
