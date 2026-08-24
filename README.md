@@ -106,6 +106,16 @@ The command keeps `.bib` files out of the upload ZIP and includes `main.bbl`.
 It also creates a project-root `arxiv-metadata.txt` draft for review and reuse.
 Kicho does not upload the package.
 
+Choose a different project-local output directory when keeping an earlier
+package or preparing a revision:
+
+```bash
+../bin/kicho submit --arxiv --output submissions/revision-2
+```
+
+Kicho refuses existing output directories and does not provide a destructive
+force-overwrite option.
+
 Show available commands.
 
 ```bash

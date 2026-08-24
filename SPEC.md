@@ -577,6 +577,11 @@ Kicho refuses to overwrite an existing `dist/main.tex`.
 Create a local submission package without uploading it anywhere.
 
 ```text
+kicho submit [--output DIRECTORY]
+kicho submit --arxiv [--output DIRECTORY]
+```
+
+```text
 submission/
 ├── main.tex
 ├── bib/
@@ -588,12 +593,17 @@ submission/
 
 `main.tex` is generated using the same expansion rules as `flatten`. Missing
 optional files produce warnings. Kicho refuses to overwrite an existing
-`submission/` directory and does not modify source files or Git state.
+destination and does not modify source files or Git state. The default output
+is `submission/`. `--output DIRECTORY` selects another relative directory
+inside the project, for example `submissions/revision-2/`. Absolute paths,
+parent (`..`) components, and paths that resolve outside the project through a
+symbolic link are rejected. Kicho creates missing parent directories but never
+overwrites the selected destination.
 
 ### arXiv submission package
 
 `kicho submit --arxiv` creates an arXiv upload archive and a separate metadata
-worksheet:
+worksheet in the selected output directory:
 
 ```text
 submission/

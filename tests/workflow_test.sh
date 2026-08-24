@@ -272,6 +272,15 @@ run_in "$submit_project" "$KICHO" submit
 assert_status 1 'submit refuses overwrite'
 assert_contains 'destination already exists' "$command_stderr"
 
+run_in "$submit_project" "$KICHO" submit --output submissions/revision-2
+assert_status 0 'submit supports a custom nested output'
+assert_file "$submit_project/submissions/revision-2/main.tex"
+assert_file "$submit_project/submissions/revision-2/manifest.json"
+
+run_in "$submit_project" "$KICHO" submit -o submissions/revision-2
+assert_status 1 'submit refuses overwrite at custom output'
+assert_contains "destination already exists: 'submissions/revision-2'" "$command_stderr"
+
 submit_without_pdf="$test_root/SubmitWithoutPDF"
 create_project_root "$submit_without_pdf"
 printf 'standalone\n' > "$submit_without_pdf/main.tex"
@@ -282,6 +291,22 @@ assert_contains 'Warning: build/main.pdf not found.' "$command_stderr"
 assert_file "$submit_without_pdf/submission/main.tex"
 assert_file "$submit_without_pdf/submission/manifest.json"
 assert_not_exists "$submit_without_pdf/submission/main.pdf"
+
+run_in "$submit_without_pdf" "$KICHO" submit --output ../outside-submission
+assert_status 1 'submit rejects parent output path'
+assert_contains "does not allow '..'" "$command_stderr"
+assert_not_exists "$test_root/outside-submission"
+
+run_in "$submit_without_pdf" "$KICHO" submit --output "$test_root/absolute-submission"
+assert_status 1 'submit rejects absolute output path'
+assert_contains 'must be a relative path' "$command_stderr"
+assert_not_exists "$test_root/absolute-submission"
+
+ln -s "$test_root" "$submit_without_pdf/escape"
+run_in "$submit_without_pdf" "$KICHO" submit --output escape/outside-submission
+assert_status 1 'submit rejects symlink output outside project'
+assert_contains 'resolves outside the project' "$command_stderr"
+assert_not_exists "$test_root/outside-submission"
 
 arxiv_project="$test_root/Arxiv Paper"
 create_project_root "$arxiv_project"
@@ -345,11 +370,12 @@ create_project_root "$arxiv_existing_metadata"
     printf 'Keywords:\nmetric spaces\n'
 } > "$arxiv_existing_metadata/arxiv-metadata.txt"
 
-run_in "$arxiv_existing_metadata" "$KICHO" submit --arxiv
+run_in "$arxiv_existing_metadata" "$KICHO" submit --arxiv \
+    --output packages/revision-2
 assert_status 0 'arXiv submit reuses curated metadata'
 assert_same \
     "$arxiv_existing_metadata/arxiv-metadata.txt" \
-    "$arxiv_existing_metadata/submission/arxiv-metadata.txt" \
+    "$arxiv_existing_metadata/packages/revision-2/arxiv-metadata.txt" \
     'arXiv submission metadata differs from curated source'
 
 arxiv_missing_bbl="$test_root/ArxivMissingBbl"

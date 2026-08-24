@@ -315,6 +315,18 @@ for command in split flatten submit; do
     assert_contains "$command does not accept arguments" "$command_stderr" "$command argument error"
 done
 
+run_in "$project" "$KICHO" submit --output
+assert_status 1 'submit missing output value'
+assert_contains 'requires an output directory' "$command_stderr" 'submit missing output error'
+
+run_in "$project" "$KICHO" submit --output one --output two
+assert_status 1 'submit duplicate output option'
+assert_contains 'output was specified more than once' "$command_stderr" 'submit duplicate output error'
+
+run_in "$project" "$KICHO" submit --arxiv --arxiv
+assert_status 1 'submit duplicate arXiv option'
+assert_contains "option '--arxiv' was specified more than once" "$command_stderr" 'submit duplicate arXiv error'
+
 run_in "$project" "$KICHO" archive unexpected
 assert_status 1 'archive with argument'
 assert_contains 'archive does not accept arguments' "$command_stderr" 'archive argument error'

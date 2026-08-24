@@ -8,13 +8,14 @@ kicho_command_submit_summary() {
 kicho_command_submit_usage() {
     cat <<'USAGE'
 Usage:
-    kicho submit
-    kicho submit --arxiv
+    kicho submit [--output DIRECTORY]
+    kicho submit --arxiv [--output DIRECTORY]
 
-Create a local submission/ package without uploading it.
+Create a local submission package without uploading it.
 
 Options:
-    --arxiv    Create arxiv-source.zip and arxiv-metadata.txt for arXiv.
+    --arxiv             Create an arXiv source ZIP and metadata worksheet.
+    -o, --output DIR    Write the package to DIR instead of submission/.
 USAGE
 }
 
@@ -23,6 +24,7 @@ kicho_command_submit_examples() {
 Examples:
     kicho submit
     kicho submit --arxiv
+    kicho submit --arxiv --output submissions/revision-2
 EXAMPLES
 }
 
@@ -43,6 +45,104 @@ kicho_submit_copy_if_exists() {
     else
         printf 'Warning: %s not found.\n' "$source" >&2
     fi
+}
+
+kicho_submit_normalize_destination() {
+    local destination="$1"
+
+    if [[ -z "$destination" ]]; then
+        kicho_error "submit output directory must not be empty."
+        return 1
+    fi
+
+    case "$destination" in
+        /*)
+            kicho_error "submit output must be a relative path: '$destination'."
+            return 1
+            ;;
+    esac
+
+    while [[ "$destination" == ./* ]]; do
+        destination="${destination#./}"
+    done
+    while [[ "$destination" == */ ]]; do
+        destination="${destination%/}"
+    done
+
+    if [[ -z "$destination" || "$destination" == "." ]]; then
+        kicho_error "submit output must name a directory inside the project."
+        return 1
+    fi
+
+    case "/$destination/" in
+        */../*)
+            kicho_error "submit output does not allow '..' path components: '$destination'."
+            return 1
+            ;;
+    esac
+
+    printf '%s\n' "$destination"
+}
+
+kicho_submit_check_destination() {
+    local destination="$1"
+
+    if [[ -e "$destination" || -L "$destination" ]]; then
+        kicho_error "submission destination already exists: '$destination'."
+        return 1
+    fi
+}
+
+kicho_submit_prepare_destination_parent() {
+    local destination="$1"
+    local parent="${destination%/*}"
+    if [[ "$parent" == "$destination" ]]; then
+        parent="."
+    fi
+
+    local existing_parent="$parent"
+    while [[ ! -d "$existing_parent" && ! -L "$existing_parent" ]]; do
+        if [[ "$existing_parent" != */* ]]; then
+            existing_parent="."
+            break
+        fi
+        existing_parent="${existing_parent%/*}"
+        [[ -n "$existing_parent" ]] || existing_parent="."
+    done
+
+    local project_root
+    project_root="$(pwd -P)"
+    local physical_parent
+    if ! physical_parent="$(cd -- "$existing_parent" 2>/dev/null && pwd -P)"; then
+        kicho_error "could not inspect submit output parent: '$parent'."
+        return 1
+    fi
+
+    case "$physical_parent" in
+        "$project_root"|"$project_root"/*) ;;
+        *)
+            kicho_error "submit output resolves outside the project: '$destination'."
+            return 1
+            ;;
+    esac
+
+    if ! mkdir -p "$parent"; then
+        kicho_error "could not create submit output parent: '$parent'."
+        return 1
+    fi
+
+    if ! physical_parent="$(cd -- "$parent" 2>/dev/null && pwd -P)"; then
+        kicho_error "could not inspect submit output parent: '$parent'."
+        return 1
+    fi
+
+    case "$physical_parent" in
+        "$project_root"|"$project_root"/*) ;;
+        *)
+            kicho_error "submit output resolves outside the project: '$destination'."
+            return 1
+            ;;
+    esac
 }
 
 kicho_submit_write_manifest() {
@@ -246,13 +346,14 @@ kicho_submit_copy_arxiv_styles() {
 }
 
 kicho_submit_arxiv() {
+    local destination="$1"
+
     if ! command -v zip >/dev/null 2>&1; then
         kicho_error "'zip' is not installed or not available in PATH."
         return 1
     fi
 
-    if [[ -e "submission" ]]; then
-        kicho_error "submission destination already exists: 'submission'."
+    if ! kicho_submit_check_destination "$destination"; then
         return 1
     fi
 
@@ -350,14 +451,20 @@ kicho_submit_arxiv() {
         return 1
     fi
 
-    if ! mv "$package_directory" "submission"; then
+    if ! kicho_submit_prepare_destination_parent "$destination" ||
+        ! kicho_submit_check_destination "$destination"; then
         rm -rf "$temporary_directory"
-        kicho_error "could not create submission directory."
+        return 1
+    fi
+
+    if ! mv "$package_directory" "$destination"; then
+        rm -rf "$temporary_directory"
+        kicho_error "could not create submission directory: '$destination'."
         return 1
     fi
 
     if [[ "$generated_metadata" == "true" ]]; then
-        if ! cp "submission/arxiv-metadata.txt" "$metadata_source"; then
+        if ! cp "$destination/arxiv-metadata.txt" "$metadata_source"; then
             rm -rf "$temporary_directory"
             kicho_error "submission was created, but arxiv-metadata.txt could not be saved in the project root."
             return 1
@@ -368,13 +475,14 @@ kicho_submit_arxiv() {
 
     rm -rf "$temporary_directory"
     printf 'Created arXiv submission package:\n'
-    printf '    submission/arxiv-source.zip\n'
-    printf '    submission/arxiv-metadata.txt\n'
+    printf '    %s/arxiv-source.zip\n' "$destination"
+    printf '    %s/arxiv-metadata.txt\n' "$destination"
 }
 
 kicho_submit_standard() {
-    if [[ -e "submission" ]]; then
-        kicho_error "submission destination already exists: 'submission'."
+    local destination="$1"
+
+    if ! kicho_submit_check_destination "$destination"; then
         return 1
     fi
 
@@ -420,38 +528,78 @@ kicho_submit_standard() {
         return 1
     fi
 
-    if ! mv "$temporary_directory" "submission"; then
+    if ! kicho_submit_prepare_destination_parent "$destination" ||
+        ! kicho_submit_check_destination "$destination"; then
         rm -rf "$temporary_directory"
-        kicho_error "could not create submission directory."
+        return 1
+    fi
+
+    if ! mv "$temporary_directory" "$destination"; then
+        rm -rf "$temporary_directory"
+        kicho_error "could not create submission directory: '$destination'."
         return 1
     fi
 
     printf 'Created submission package:\n'
-    printf '    submission\n'
+    printf '    %s\n' "$destination"
 }
 
 kicho_command_submit() {
-    case "${1:-}" in
-        "")
-            if [[ $# -ne 0 ]]; then
-                kicho_error "submit does not accept these arguments."
+    local arxiv="false"
+    local destination="submission"
+    local output_seen="false"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --arxiv)
+                if [[ "$arxiv" == "true" ]]; then
+                    kicho_error "submit option '--arxiv' was specified more than once."
+                    return 1
+                fi
+                arxiv="true"
+                shift
+                ;;
+            -o|--output)
+                if [[ "$output_seen" == "true" ]]; then
+                    kicho_error "submit output was specified more than once."
+                    return 1
+                fi
+                if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == -* ]]; then
+                    kicho_error "option '$1' requires an output directory."
+                    return 1
+                fi
+                destination="$2"
+                output_seen="true"
+                shift 2
+                ;;
+            --output=*)
+                if [[ "$output_seen" == "true" ]]; then
+                    kicho_error "submit output was specified more than once."
+                    return 1
+                fi
+                destination="${1#*=}"
+                if [[ -z "$destination" ]]; then
+                    kicho_error "option '--output' requires an output directory."
+                    return 1
+                fi
+                output_seen="true"
+                shift
+                ;;
+            *)
+                kicho_error "submit does not accept arguments such as '$1'."
                 printf "Run 'kicho help submit' for usage.\n" >&2
                 return 1
-            fi
-            kicho_submit_standard
-            ;;
-        --arxiv)
-            if [[ $# -ne 1 ]]; then
-                kicho_error "submit --arxiv does not accept additional arguments."
-                printf "Run 'kicho help submit' for usage.\n" >&2
-                return 1
-            fi
-            kicho_submit_arxiv
-            ;;
-        *)
-            kicho_error "submit does not accept arguments other than '--arxiv'."
-            printf "Run 'kicho help submit' for usage.\n" >&2
-            return 1
-            ;;
-    esac
+                ;;
+        esac
+    done
+
+    if ! destination="$(kicho_submit_normalize_destination "$destination")"; then
+        return 1
+    fi
+
+    if [[ "$arxiv" == "true" ]]; then
+        kicho_submit_arxiv "$destination"
+    else
+        kicho_submit_standard "$destination"
+    fi
 }
