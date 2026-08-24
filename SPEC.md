@@ -131,6 +131,12 @@ latexmk
 
 The command does not accept arguments.
 
+When `TEXMFVAR` is unset, Kicho creates `build/texmf-var/` and exports it to
+`latexmk` as a writable project-local LuaTeX font-cache directory. An explicit
+non-empty `TEXMFVAR` is preserved. The built-in `.latexmkrc` templates apply
+the same unset-only fallback, so direct `latexmk` and LaTeX Workshop builds use
+the project-local cache as well.
+
 Build behavior is delegated to the project's `.latexmkrc`.
 
 The current project template uses:
@@ -144,6 +150,10 @@ Kicho does not directly duplicate the compilation settings stored in `.latexmkrc
 
 Editor recipes should likewise call `latexmk` and leave engine selection and
 flags to `.latexmkrc`.
+
+`kicho doctor` reports whether an explicit `TEXMFVAR`, or the project-local
+fallback when no value is set, has a writable directory. An unwritable explicit
+setting produces a warning but is not replaced.
 
 #### Future Configuration
 

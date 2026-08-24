@@ -144,6 +144,13 @@ iCloud Drive path containing spaces or `~` directly to LuaLaTeX.
 The PDF viewer is configured to open `build/main.pdf`. Kicho intentionally does
 not generate `main.pdf` in the project root.
 
+Kicho also keeps LuaTeX's font cache under `build/texmf-var/` when `TEXMFVAR`
+has not been set explicitly. This avoids font-cache permission failures in
+restricted shells and agent environments. The setting is shared by `kicho
+build`, direct `latexmk` runs, and the generated LaTeX Workshop configuration.
+Run `kicho doctor` to inspect cache writability. Existing explicit `TEXMFVAR`
+settings are preserved.
+
 Keep engine selection in `.latexmkrc`. Do not add a line such as this to
 `main.tex`:
 

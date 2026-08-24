@@ -404,6 +404,8 @@ Kicho should avoid duplicating configuration owned by existing tools.
 Examples:
 
 - LuaLaTeX options belong in `.latexmkrc`
+- LuaTeX cache placement defaults to generated `build/` state while preserving
+  an explicit `TEXMFVAR`
 - bibliography settings belong in LaTeX or Biber configuration
 - editor-specific settings belong in the editor
 - Kicho workflow settings may eventually belong in `kicho.toml`

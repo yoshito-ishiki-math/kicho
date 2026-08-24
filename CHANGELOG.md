@@ -8,6 +8,8 @@ All notable user-visible changes to Kicho are documented in this file.
 
 - Add `kicho submit --arxiv` for a flattened source ZIP containing `main.bbl`
   instead of `.bib` files, plus a reusable metadata worksheet for manual review
+- Add a project-local LuaTeX font-cache fallback for Kicho, generated
+  `.latexmkrc` files, and cache-writability diagnostics in `kicho doctor`
 
 ## [0.2.0-alpha.2] - 2026-07-30
 

@@ -49,6 +49,44 @@ kicho_doctor_check_command() {
     return 1
 }
 
+kicho_doctor_cache_directory() {
+    local cache_path="$1"
+
+    cache_path="${cache_path%%:*}"
+    cache_path="${cache_path#!!}"
+
+    if [[ -z "$cache_path" ]]; then
+        return 1
+    fi
+
+    printf '%s\n' "$cache_path"
+}
+
+kicho_doctor_directory_is_writable() {
+    local directory="$1"
+    local parent="$directory"
+
+    if [[ -e "$directory" && ! -d "$directory" ]]; then
+        return 1
+    fi
+
+    while [[ ! -d "$parent" ]]; do
+        if [[ "$parent" != */* ]]; then
+            parent="."
+            break
+        fi
+        parent="${parent%/*}"
+        [[ -n "$parent" ]] || parent="/"
+    done
+
+    local probe
+    if ! probe="$(/usr/bin/mktemp "$parent/.kicho-write-test.XXXXXX" 2>/dev/null)"; then
+        return 1
+    fi
+
+    /bin/rm -f "$probe"
+}
+
 kicho_command_doctor() {
     local failures=0
     local warnings=0
@@ -132,6 +170,30 @@ kicho_command_doctor() {
 
     if ! kicho_doctor_check_command biber; then
         ((failures += 1))
+    fi
+
+    printf '\nLuaTeX cache\n'
+
+    local cache_directory
+    if [[ -n "${TEXMFVAR:-}" ]]; then
+        if cache_directory="$(kicho_doctor_cache_directory "$TEXMFVAR")" &&
+            kicho_doctor_directory_is_writable "$cache_directory"; then
+            kicho_doctor_ok "TEXMFVAR is writable: $cache_directory"
+        else
+            kicho_doctor_warn "TEXMFVAR is not writable: $TEXMFVAR"
+            kicho_doctor_warn 'Kicho will preserve this explicit setting.'
+            ((warnings += 1))
+        fi
+    elif [[ -f ".latexmkrc" ]]; then
+        cache_directory="$PWD/build/texmf-var"
+        if kicho_doctor_directory_is_writable "$cache_directory"; then
+            kicho_doctor_ok "Project LuaTeX cache is writable: $cache_directory"
+        else
+            kicho_doctor_warn "Project LuaTeX cache is not writable: $cache_directory"
+            ((warnings += 1))
+        fi
+    else
+        kicho_doctor_ok 'Kicho will select a project-local LuaTeX cache during build.'
     fi
 
     printf '\nOptional environment\n'

@@ -157,6 +157,7 @@ assert_contains '"%DOCFILE_EXT%"' "$project/.vscode/settings.json" \
     'English template uses relative root filename'
 assert_contains '"latex-workshop.latex.outDir": "%DIR%/build"' \
     "$project/.vscode/settings.json" 'English template PDF output directory'
+assert_contains "ENV{'TEXMFVAR'}" "$project/.latexmkrc" 'English project LuaTeX cache fallback'
 assert_not_exists "$project/build/main.pdf" 'init excludes ignored PDF artifact'
 assert_not_exists "$project/main.pdf" 'init excludes root PDF'
 assert_not_exists "$project/build/main.aux" 'init excludes ignored auxiliary artifact'
@@ -188,6 +189,7 @@ assert_contains '"%DOCFILE_EXT%"' "$japanese_project/.vscode/settings.json" \
     'Japanese template uses relative root filename'
 assert_contains '"latex-workshop.latex.outDir": "%DIR%/build"' \
     "$japanese_project/.vscode/settings.json" 'Japanese template PDF output directory'
+assert_contains "ENV{'TEXMFVAR'}" "$japanese_project/.latexmkrc" 'Japanese project LuaTeX cache fallback'
 assert_not_exists "$japanese_project/build/main.pdf" 'Japanese init excludes PDF artifact'
 assert_not_exists "$japanese_project/main.pdf" 'Japanese init excludes root PDF'
 
@@ -243,16 +245,29 @@ mkdir -p "$fake_bin"
 {
     printf '#!/usr/bin/env bash\n'
     printf 'printf "%%s\\n" "$*" >> "$KICHO_TEST_LATEXMK_LOG"\n'
+    printf 'printf "TEXMFVAR=%%s\\n" "${TEXMFVAR:-}" >> "$KICHO_TEST_LATEXMK_LOG"\n'
     printf 'exit "${KICHO_TEST_LATEXMK_STATUS:-0}"\n'
 } > "$fake_bin/latexmk"
 chmod +x "$fake_bin/latexmk"
 
-run_in "$project" env \
+run_in "$project" env -u TEXMFVAR \
     PATH="$fake_bin:$PATH" \
     KICHO_TEST_LATEXMK_LOG="$latexmk_log" \
     "$KICHO" build
 assert_status 0 'build with latexmk'
 assert_contains 'Build completed successfully.' "$command_stdout" 'build success output'
+project_logical="$(cd -- "$project" && pwd -L)"
+assert_contains "TEXMFVAR=$project_logical/build/texmf-var" "$latexmk_log" 'build project LuaTeX cache fallback'
+
+: > "$latexmk_log"
+configured_texmfvar="$test_root/configured-texmfvar"
+run_in "$project" env \
+    PATH="$fake_bin:$PATH" \
+    KICHO_TEST_LATEXMK_LOG="$latexmk_log" \
+    TEXMFVAR="$configured_texmfvar" \
+    "$KICHO" build
+assert_status 0 'build preserves configured TEXMFVAR'
+assert_contains "TEXMFVAR=$configured_texmfvar" "$latexmk_log" 'configured TEXMFVAR preservation'
 
 run_in "$project" env \
     PATH="$fake_bin:$PATH" \

@@ -85,6 +85,7 @@ make_tool_path "$all_tools" latexmk lualatex biber git
 
 run_doctor "$complete_project" "$all_tools"
 assert_status 0 'doctor in a complete environment'
+assert_contains 'Project LuaTeX cache is writable:' "$command_stdout" 'doctor project cache check'
 assert_contains 'All checks passed.' "$command_stdout" 'doctor success summary'
 assert_contains 'Failures: 0' "$command_stdout" 'doctor success failures'
 assert_contains 'Warnings: 0' "$command_stdout" 'doctor success warnings'
@@ -110,6 +111,13 @@ run_doctor "$incomplete_project" "$all_tools"
 assert_status 0 'doctor is independent of incomplete project structure'
 assert_contains 'All checks passed.' "$command_stdout" 'doctor ignores project completeness'
 assert_contains 'Warnings: 0' "$command_stdout" 'incomplete project does not affect doctor warnings'
+
+invalid_texmfvar="$test_root/texmfvar-is-a-file"
+: > "$invalid_texmfvar"
+TEXMFVAR="$invalid_texmfvar" run_doctor "$complete_project" "$all_tools"
+assert_status 0 'doctor warns for unwritable explicit TEXMFVAR'
+assert_contains 'TEXMFVAR is not writable:' "$command_stdout" 'doctor unwritable cache warning'
+assert_contains 'Warnings: 1' "$command_stdout" 'doctor cache warning count'
 
 run_doctor "$complete_project" "$all_tools" unexpected
 assert_status 1 'doctor argument error'
