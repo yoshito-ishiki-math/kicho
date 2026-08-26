@@ -6,52 +6,8 @@ TEST_DIR="$(
     cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
     pwd
 )"
-KICHO_ROOT="$(
-    cd -- "$TEST_DIR/.." &&
-    pwd
-)"
-KICHO="$KICHO_ROOT/bin/kicho"
-
-failures=0
-
-fail() {
-    printf 'FAIL: %s\n' "$1" >&2
-    failures=$((failures + 1))
-}
-
-assert_file() {
-    local path="$1"
-
-    if [[ ! -f "$path" ]]; then
-        fail "file not found: $path"
-    fi
-}
-
-assert_directory() {
-    local path="$1"
-
-    if [[ ! -d "$path" ]]; then
-        fail "directory not found: $path"
-    fi
-}
-
-assert_contains() {
-    local expected="$1"
-    local path="$2"
-
-    if ! grep -F -- "$expected" "$path" >/dev/null 2>&1; then
-        fail "'$expected' not found in $path"
-    fi
-}
-
-assert_not_contains() {
-    local unexpected="$1"
-    local path="$2"
-
-    if grep -F -- "$unexpected" "$path" >/dev/null 2>&1; then
-        fail "'$unexpected' unexpectedly found in $path"
-    fi
-}
+# shellcheck source=test_helper.sh
+source "$TEST_DIR/test_helper.sh"
 
 assert_equal() {
     local expected="$1"
@@ -212,6 +168,8 @@ assert_not_contains '"git": {' "$missing_pdf_archive/metadata/archive.json"
 
 # shellcheck source=/dev/null
 source "$KICHO_ROOT/lib/kicho/common.sh"
+# shellcheck source=/dev/null
+source "$KICHO_ROOT/lib/kicho/metadata.sh"
 # shellcheck source=/dev/null
 source "$KICHO_ROOT/lib/kicho/commands/archive.sh"
 

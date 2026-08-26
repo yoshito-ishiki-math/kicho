@@ -48,12 +48,10 @@ kicho_flatten_resolve_path() {
             ;;
     esac
 
-    case "/$reference/" in
-        */../*)
-            kicho_error "flatten does not allow '..' path components: '$reference'."
-            return 1
-            ;;
-    esac
+    if kicho_path_has_parent_component "$reference"; then
+        kicho_error "flatten does not allow '..' path components: '$reference'."
+        return 1
+    fi
 
     while [[ "$reference" == ./* ]]; do
         reference="${reference#./}"
@@ -76,13 +74,10 @@ kicho_flatten_resolve_path() {
         return 1
     fi
 
-    case "$physical_directory" in
-        "$project_root"|"$project_root"/*) ;;
-        *)
-            kicho_error "flatten input resolves outside the project: '$reference'."
-            return 1
-            ;;
-    esac
+    if ! kicho_path_is_within_root "$project_root" "$physical_directory"; then
+        kicho_error "flatten input resolves outside the project: '$reference'."
+        return 1
+    fi
 
     local resolved_path="$physical_directory/$filename"
     if [[ -L "$resolved_path" ]]; then

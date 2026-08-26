@@ -23,3 +23,32 @@ jobs:
         env:
           KICHO_TEST_BASH: /bin/bash
         run: /bin/bash tests/run.sh
+
+  template-smoke:
+    name: English and Japanese LuaLaTeX templates
+    runs-on: macos-14
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install BasicTeX
+        run: brew install --cask basictex
+
+      - name: Install template dependencies
+        run: |
+          eval "$(/usr/libexec/path_helper)"
+          sudo tlmgr update --self
+          sudo tlmgr install \
+            latexmk \
+            biber \
+            collection-luatex \
+            collection-langjapanese \
+            collection-latexrecommended \
+            collection-latexextra \
+            collection-fontsrecommended
+
+      - name: Build English and Japanese templates
+        run: |
+          eval "$(/usr/libexec/path_helper)"
+          /bin/bash tests/template_smoke_test.sh

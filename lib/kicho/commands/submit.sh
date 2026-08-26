@@ -74,12 +74,10 @@ kicho_submit_normalize_destination() {
         return 1
     fi
 
-    case "/$destination/" in
-        */../*)
-            kicho_error "submit output does not allow '..' path components: '$destination'."
-            return 1
-            ;;
-    esac
+    if kicho_path_has_parent_component "$destination"; then
+        kicho_error "submit output does not allow '..' path components: '$destination'."
+        return 1
+    fi
 
     printf '%s\n' "$destination"
 }
@@ -118,13 +116,10 @@ kicho_submit_prepare_destination_parent() {
         return 1
     fi
 
-    case "$physical_parent" in
-        "$project_root"|"$project_root"/*) ;;
-        *)
-            kicho_error "submit output resolves outside the project: '$destination'."
-            return 1
-            ;;
-    esac
+    if ! kicho_path_is_within_root "$project_root" "$physical_parent"; then
+        kicho_error "submit output resolves outside the project: '$destination'."
+        return 1
+    fi
 
     if ! mkdir -p "$parent"; then
         kicho_error "could not create submit output parent: '$parent'."
@@ -136,13 +131,10 @@ kicho_submit_prepare_destination_parent() {
         return 1
     fi
 
-    case "$physical_parent" in
-        "$project_root"|"$project_root"/*) ;;
-        *)
-            kicho_error "submit output resolves outside the project: '$destination'."
-            return 1
-            ;;
-    esac
+    if ! kicho_path_is_within_root "$project_root" "$physical_parent"; then
+        kicho_error "submit output resolves outside the project: '$destination'."
+        return 1
+    fi
 }
 
 kicho_submit_write_manifest() {
@@ -154,14 +146,14 @@ kicho_submit_write_manifest() {
     local git_commit=""
     local git_dirty="false"
 
-    if kicho_archive_has_git_metadata; then
+    if kicho_metadata_has_git; then
         include_git="true"
-        git_branch="$(kicho_archive_git_branch)"
-        git_commit="$(kicho_archive_git_commit)"
-        git_dirty="$(kicho_archive_git_dirty)"
+        git_branch="$(kicho_metadata_git_branch)"
+        git_commit="$(kicho_metadata_git_commit)"
+        git_dirty="$(kicho_metadata_git_dirty)"
     fi
 
-    kicho_archive_write_metadata \
+    kicho_metadata_write_manifest \
         "$destination" \
         "$created_at" \
         "$project" \
@@ -357,6 +349,11 @@ kicho_submit_arxiv() {
         return 1
     fi
 
+    if [[ -L "arxiv-metadata.txt" ]]; then
+        kicho_error "arxiv-metadata.txt must not be a symbolic link."
+        return 1
+    fi
+
     if [[ -e "arxiv-metadata.txt" && ! -f "arxiv-metadata.txt" ]]; then
         kicho_error "arxiv-metadata.txt exists but is not a regular file."
         return 1
@@ -441,7 +438,7 @@ kicho_submit_arxiv() {
     fi
 
     local created_at
-    created_at="$(kicho_archive_created_at)"
+    created_at="$(kicho_metadata_created_at)"
     local project
     project="$(basename "$PWD")"
     if ! kicho_submit_write_manifest \
@@ -451,24 +448,34 @@ kicho_submit_arxiv() {
         return 1
     fi
 
+    if [[ "$generated_metadata" == "true" ]]; then
+        if [[ -e "$metadata_source" || -L "$metadata_source" ]] ||
+            ! cp "$package_directory/arxiv-metadata.txt" "$metadata_source"; then
+            rm -rf "$temporary_directory"
+            kicho_error "arxiv-metadata.txt could not be saved in the project root."
+            return 1
+        fi
+    fi
+
     if ! kicho_submit_prepare_destination_parent "$destination" ||
         ! kicho_submit_check_destination "$destination"; then
+        if [[ "$generated_metadata" == "true" ]]; then
+            rm -f -- "$metadata_source"
+        fi
         rm -rf "$temporary_directory"
         return 1
     fi
 
     if ! mv "$package_directory" "$destination"; then
+        if [[ "$generated_metadata" == "true" ]]; then
+            rm -f -- "$metadata_source"
+        fi
         rm -rf "$temporary_directory"
         kicho_error "could not create submission directory: '$destination'."
         return 1
     fi
 
     if [[ "$generated_metadata" == "true" ]]; then
-        if ! cp "$destination/arxiv-metadata.txt" "$metadata_source"; then
-            rm -rf "$temporary_directory"
-            kicho_error "submission was created, but arxiv-metadata.txt could not be saved in the project root."
-            return 1
-        fi
         printf 'Generated metadata draft for review:\n'
         printf '    arxiv-metadata.txt\n'
     fi
@@ -487,7 +494,7 @@ kicho_submit_standard() {
     fi
 
     local created_at
-    created_at="$(kicho_archive_created_at)"
+    created_at="$(kicho_metadata_created_at)"
 
     local project
     project="$(basename "$PWD")"

@@ -91,12 +91,10 @@ kicho_check_resolve_reference() {
             ;;
     esac
 
-    case "/$reference/" in
-        */../*)
-            kicho_check_fail "parent-path $kind reference is not allowed: '$reference'."
-            return 1
-            ;;
-    esac
+    if kicho_path_has_parent_component "$reference"; then
+        kicho_check_fail "parent-path $kind reference is not allowed: '$reference'."
+        return 1
+    fi
 
     prepared="$(kicho_check_prepare_reference "$reference" "$kind")"
 
@@ -111,13 +109,10 @@ kicho_check_resolve_reference() {
         return 1
     fi
 
-    case "$physical_directory" in
-        "$KICHO_CHECK_ROOT"|"$KICHO_CHECK_ROOT"/*) ;;
-        *)
-            kicho_check_fail "$kind reference resolves outside the project: '$reference'."
-            return 1
-            ;;
-    esac
+    if ! kicho_path_is_within_root "$KICHO_CHECK_ROOT" "$physical_directory"; then
+        kicho_check_fail "$kind reference resolves outside the project: '$reference'."
+        return 1
+    fi
 
     if [[ -L "$prepared" ]]; then
         kicho_check_fail "$kind reference is a symbolic link: '$prepared'."

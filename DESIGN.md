@@ -153,6 +153,8 @@ kicho/
 │   └── kicho
 ├── lib/kicho/
 │   ├── common.sh
+│   ├── metadata.sh
+│   ├── path.sh
 │   ├── loader.sh
 │   └── commands/
 ├── templates/
@@ -161,8 +163,9 @@ kicho/
 ├── SPEC.md
 ├── DESIGN.md
 ├── TODO.md
+├── REVIEW.md
 ├── AI.md
-└── LICENSE
+└── CHANGELOG.md
 ```
 
 ### `bin/`
@@ -185,13 +188,16 @@ library is responsible for:
 - dispatching subcommands
 
 Individual command files contain metadata and command-specific behavior.
-Shared checks and output helpers belong in `loader.sh` and `common.sh`.
+Shared dispatch checks and output helpers belong in `loader.sh` and
+`common.sh`. Manifest metadata and small project-path predicates live in
+`metadata.sh` and `path.sh`; command-specific path rules remain in each command.
 
 ### `tests/` and `.github/workflows/`
 
-`tests/run.sh` is the single local entry point for ShellCheck, syntax checks,
-and integration tests. CI runs it on macOS with `/bin/bash`, which is the
-supported Bash 3.2 compatibility baseline.
+`tests/run.sh` is the local entry point for ShellCheck, syntax checks, and fast
+integration tests. CI runs it on macOS with `/bin/bash`, which is the supported
+Bash 3.2 compatibility baseline. A separate CI job runs real English and
+Japanese LuaLaTeX template smoke builds.
 
 ### `templates/`
 

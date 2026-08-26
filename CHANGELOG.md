@@ -6,8 +6,18 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Fixed
 
+- Roll back files created by `split` when a later write fails, and avoid
+  publishing an arXiv package before generated root metadata is saved
 - Preserve AMS math fonts in the English template so inline and display
   mathematics work inside the `amsart` abstract
+
+### Changed
+
+- Separate shared metadata and path predicates from command implementations
+- Share the shell-test runner and assertions across test files
+- Add real English and Japanese LuaLaTeX template smoke builds to CI
+- Consolidate roadmap and architectural review documentation into `TODO.md`
+  and `REVIEW.md`
 
 ### Added
 

@@ -6,21 +6,8 @@ TEST_DIR="$(
     cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
     pwd
 )"
-KICHO_ROOT="$(
-    cd -- "$TEST_DIR/.." &&
-    pwd
-)"
-KICHO="$KICHO_ROOT/bin/kicho"
-
-failures=0
-command_status=0
-command_stdout=''
-command_stderr=''
-
-fail() {
-    printf 'FAIL: %s\n' "$1" >&2
-    failures=$((failures + 1))
-}
+# shellcheck source=test_helper.sh
+source "$TEST_DIR/test_helper.sh"
 
 run_check() {
     local directory="$1"
@@ -33,23 +20,6 @@ run_check() {
         "$KICHO" check "$@"
     ) > "$command_stdout" 2> "$command_stderr"
     command_status=$?
-}
-
-assert_status() {
-    local expected="$1"
-    local description="$2"
-    if [[ "$command_status" -ne "$expected" ]]; then
-        fail "$description: expected status $expected, got $command_status"
-    fi
-}
-
-assert_contains() {
-    local expected="$1"
-    local path="$2"
-    local description="$3"
-    if ! grep -F -- "$expected" "$path" >/dev/null 2>&1; then
-        fail "$description: '$expected' not found"
-    fi
 }
 
 test_root="$(mktemp -d "${TMPDIR:-/tmp}/kicho-check-test.XXXXXX")" || exit 1

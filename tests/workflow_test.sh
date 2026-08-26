@@ -6,77 +6,8 @@ TEST_DIR="$(
     cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
     pwd
 )"
-KICHO_ROOT="$(
-    cd -- "$TEST_DIR/.." &&
-    pwd
-)"
-KICHO="$KICHO_ROOT/bin/kicho"
-
-failures=0
-command_status=0
-command_stdout=""
-command_stderr=""
-
-fail() {
-    printf 'FAIL: %s\n' "$1" >&2
-    failures=$((failures + 1))
-}
-
-run_in() {
-    local directory="$1"
-    shift
-
-    command_stdout="$test_root/stdout"
-    command_stderr="$test_root/stderr"
-    (
-        cd -- "$directory" &&
-        "$@"
-    ) > "$command_stdout" 2> "$command_stderr"
-    command_status=$?
-}
-
-assert_status() {
-    local expected="$1"
-    local description="$2"
-
-    if [[ "$command_status" -ne "$expected" ]]; then
-        fail "$description: expected status $expected, got $command_status"
-    fi
-}
-
-assert_file() {
-    local path="$1"
-
-    if [[ ! -f "$path" ]]; then
-        fail "file not found: $path"
-    fi
-}
-
-assert_not_exists() {
-    local path="$1"
-
-    if [[ -e "$path" ]]; then
-        fail "unexpected path: $path"
-    fi
-}
-
-assert_contains() {
-    local expected="$1"
-    local path="$2"
-
-    if ! grep -F -- "$expected" "$path" >/dev/null 2>&1; then
-        fail "'$expected' not found in $path"
-    fi
-}
-
-assert_not_contains() {
-    local unexpected="$1"
-    local path="$2"
-
-    if grep -F -- "$unexpected" "$path" >/dev/null 2>&1; then
-        fail "'$unexpected' unexpectedly found in $path"
-    fi
-}
+# shellcheck source=test_helper.sh
+source "$TEST_DIR/test_helper.sh"
 
 assert_same() {
     local expected="$1"
@@ -196,6 +127,40 @@ assert_status 1 'split rejects symbolic-link sections directory'
 assert_contains 'does not use a symbolic-link sections directory' "$command_stderr"
 assert_not_exists "$test_root/outside-sections/escaped.tex"
 assert_not_exists "$symlink_sections_project/main.tex.kicho-backup"
+
+split_rollback_project="$test_root/SplitRollback"
+create_project_root "$split_rollback_project"
+{
+    printf 'before\n'
+    printf '%% kicho:section rollback-target\n'
+    printf 'rollback contents\n'
+    printf '%% kicho:end\n'
+    printf 'after\n'
+} > "$split_rollback_project/main.tex"
+cp "$split_rollback_project/main.tex" "$test_root/split-rollback-original.tex"
+
+split_failure_bin="$test_root/split-failure-bin"
+mkdir -p "$split_failure_bin"
+# The single-quoted strings below are the literal contents of the fake command.
+# shellcheck disable=SC2016
+{
+    printf '#!/usr/bin/env bash\n'
+    printf 'if [[ "$1" == */source.tex ]]; then exit 73; fi\n'
+    printf 'exec /bin/cp "$@"\n'
+} > "$split_failure_bin/cp"
+chmod +x "$split_failure_bin/cp"
+
+run_in "$split_rollback_project" env \
+    PATH="$split_failure_bin:$PATH" \
+    "$KICHO" split
+assert_status 1 'split rolls back after source update failure'
+assert_contains 'could not update split source' "$command_stderr"
+assert_same \
+    "$test_root/split-rollback-original.tex" \
+    "$split_rollback_project/main.tex" \
+    'failed split did not restore its source'
+assert_not_exists "$split_rollback_project/main.tex.kicho-backup"
+assert_not_exists "$split_rollback_project/sections/rollback-target.tex"
 
 invalid_split="$test_root/InvalidSplit"
 create_project_root "$invalid_split"
@@ -444,6 +409,51 @@ run_in "$arxiv_missing_bbl" "$KICHO" submit --arxiv
 assert_status 1 'arXiv submit requires bbl for bibliography'
 assert_contains 'build/main.bbl was not found' "$command_stderr"
 assert_not_exists "$arxiv_missing_bbl/submission"
+
+arxiv_metadata_failure="$test_root/ArxivMetadataFailure"
+create_project_root "$arxiv_metadata_failure"
+printf '\\documentclass{article}\n\\begin{document}\nBody.\n\\end{document}\n' \
+    > "$arxiv_metadata_failure/main.tex"
+
+metadata_failure_bin="$test_root/metadata-failure-bin"
+mkdir -p "$metadata_failure_bin"
+# The single-quoted strings below are the literal contents of the fake command.
+# shellcheck disable=SC2016
+{
+    printf '#!/usr/bin/env bash\n'
+    printf 'if [[ "$2" == "arxiv-metadata.txt" ]]; then exit 74; fi\n'
+    printf 'exec /bin/cp "$@"\n'
+} > "$metadata_failure_bin/cp"
+chmod +x "$metadata_failure_bin/cp"
+
+run_in "$arxiv_metadata_failure" env \
+    PATH="$metadata_failure_bin:$PATH" \
+    "$KICHO" submit --arxiv
+assert_status 1 'arXiv submit stops before publication when metadata save fails'
+assert_contains 'could not be saved in the project root' "$command_stderr"
+assert_not_exists "$arxiv_metadata_failure/submission"
+assert_not_exists "$arxiv_metadata_failure/arxiv-metadata.txt"
+
+arxiv_move_failure="$test_root/ArxivMoveFailure"
+create_project_root "$arxiv_move_failure"
+printf '\\documentclass{article}\n\\begin{document}\nBody.\n\\end{document}\n' \
+    > "$arxiv_move_failure/main.tex"
+
+move_failure_bin="$test_root/move-failure-bin"
+mkdir -p "$move_failure_bin"
+{
+    printf '#!/usr/bin/env bash\n'
+    printf 'exit 75\n'
+} > "$move_failure_bin/mv"
+chmod +x "$move_failure_bin/mv"
+
+run_in "$arxiv_move_failure" env \
+    PATH="$move_failure_bin:$PATH" \
+    "$KICHO" submit --arxiv
+assert_status 1 'arXiv submit removes generated metadata when publication fails'
+assert_contains 'could not create submission directory' "$command_stderr"
+assert_not_exists "$arxiv_move_failure/submission"
+assert_not_exists "$arxiv_move_failure/arxiv-metadata.txt"
 
 if ((failures > 0)); then
     printf '%d workflow test(s) failed.\n' "$failures" >&2

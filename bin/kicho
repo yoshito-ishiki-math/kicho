@@ -17,6 +17,10 @@ KICHO_LIB_DIR="$KICHO_ROOT/lib/kicho"
 # shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/common.sh"
 # shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/metadata.sh"
+# shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/path.sh"
+# shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/loader.sh"
 
 kicho_load_commands

@@ -62,12 +62,10 @@ kicho_split_resolve_source() {
             ;;
     esac
 
-    case "/$source/" in
-        */../*)
-            kicho_error "split does not allow '..' path components: '$source'."
-            return 1
-            ;;
-    esac
+    if kicho_path_has_parent_component "$source"; then
+        kicho_error "split does not allow '..' path components: '$source'."
+        return 1
+    fi
 
     while [[ "$source" == ./* ]]; do
         source="${source#./}"
@@ -93,13 +91,10 @@ kicho_split_resolve_source() {
         return 1
     fi
 
-    case "$physical_directory" in
-        "$project_root"|"$project_root"/*) ;;
-        *)
-            kicho_error "split source resolves outside the project: '$source'."
-            return 1
-            ;;
-    esac
+    if ! kicho_path_is_within_root "$project_root" "$physical_directory"; then
+        kicho_error "split source resolves outside the project: '$source'."
+        return 1
+    fi
 
     local resolved_path="$physical_directory/$filename"
     if [[ -L "$resolved_path" ]]; then
@@ -209,6 +204,38 @@ kicho_split_render() {
     done < "$source_file"
 }
 
+kicho_split_rollback() {
+    local source_file="$1"
+    local remove_sections_directory="$2"
+    shift 2
+
+    local created_section
+    local rollback_status=0
+    for created_section in "$@"; do
+        if ! rm -f -- "$created_section"; then
+            rollback_status=1
+        fi
+    done
+
+    if [[ -f "$source_file.kicho-backup" ]]; then
+        if cp "$source_file.kicho-backup" "$source_file" >/dev/null 2>&1; then
+            if ! rm -f -- "$source_file.kicho-backup"; then
+                rollback_status=1
+            fi
+        else
+            rollback_status=1
+        fi
+    fi
+
+    if [[ "$remove_sections_directory" == "true" && -d "sections" ]]; then
+        if ! rmdir "sections" >/dev/null 2>&1; then
+            rollback_status=1
+        fi
+    fi
+
+    return "$rollback_status"
+}
+
 kicho_command_split() {
     if [[ $# -gt 1 ]]; then
         kicho_error "split accepts at most one source file."
@@ -240,25 +267,53 @@ kicho_command_split() {
         return 1
     fi
 
+    local remove_sections_directory="false"
+    if [[ ! -d "sections" ]]; then
+        remove_sections_directory="true"
+    fi
+
     if ! cp "$source_file" "$source_file.kicho-backup"; then
         rm -rf "$temporary_directory"
         kicho_error "could not create source backup: '$source_file.kicho-backup'."
         return 1
     fi
 
-    mkdir -p "sections"
+    if ! mkdir -p "sections"; then
+        rm -rf "$temporary_directory"
+        if ! kicho_split_rollback "$source_file" "$remove_sections_directory"; then
+            kicho_error "split rollback was incomplete; inspect the source and its backup."
+        fi
+        kicho_error "could not create split output directory: 'sections'."
+        return 1
+    fi
 
     local section_file
+    local section_name
+    local created_sections=()
     for section_file in "$temporary_directory/sections/"*.tex; do
-        if ! cp "$section_file" "sections/"; then
+        section_name="${section_file##*/}"
+        if ! cp "$section_file" "sections/$section_name"; then
             rm -rf "$temporary_directory"
+            if ! kicho_split_rollback \
+                "$source_file" \
+                "$remove_sections_directory" \
+                "${created_sections[@]}"; then
+                kicho_error "split rollback was incomplete; inspect the source and its backup."
+            fi
             kicho_error "could not copy split section files."
             return 1
         fi
+        created_sections+=("sections/$section_name")
     done
 
     if ! cp "$temporary_directory/source.tex" "$source_file"; then
         rm -rf "$temporary_directory"
+        if ! kicho_split_rollback \
+            "$source_file" \
+            "$remove_sections_directory" \
+            "${created_sections[@]}"; then
+            kicho_error "split rollback was incomplete; inspect the source and its backup."
+        fi
         kicho_error "could not update split source: '$source_file'."
         return 1
     fi

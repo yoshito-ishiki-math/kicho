@@ -17,11 +17,12 @@ status=0
 if ! command -v shellcheck >/dev/null 2>&1; then
     printf 'ShellCheck is required to run the test suite.\n' >&2
     status=1
-elif ! shellcheck -x \
+elif ! shellcheck -x -P "$TEST_DIR" \
     "$KICHO_ROOT/bin/kicho" \
     "$KICHO_ROOT/lib/kicho/"*.sh \
     "$KICHO_ROOT/lib/kicho/commands/"*.sh \
-    "$TEST_DIR/"*.sh; then
+    "$TEST_DIR/"*_test.sh \
+    "$TEST_DIR/run.sh"; then
     status=1
 fi
 
