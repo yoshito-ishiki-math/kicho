@@ -21,6 +21,8 @@ Kicho currently implements:
 - [x] `kicho COMMAND --help` and `kicho COMMAND -h`
 - [x] ShellCheck, Bash syntax, and integration tests
 - [x] macOS GitHub Actions using the system Bash 3.2
+- [x] Real LuaLaTeX smoke builds for the English and Japanese templates
+- [x] arXiv source ZIP creation with generated metadata and BBL packaging
 
 ---
 
@@ -36,10 +38,11 @@ Kicho currently implements:
 
 ## v0.2 Series — Workflow and Diagnostics
 
-`v0.2.0-alpha.1` established the workflow and diagnostics baseline. Compatibility
-fixes found through real project use are released in `v0.2.0-alpha.2`. Confirm
-that prerelease on active projects before the CLI moves to beta and then to the
-stable `v0.2.0` release.
+`v0.2.0-alpha.1` established the workflow and diagnostics baseline, and
+`v0.2.0-alpha.2` added compatibility fixes found through representative project
+use. `v0.2.0-alpha.3` packages the subsequent workflow, submission, and safety
+improvements for active-project validation before the CLI moves to beta and
+then to the stable `v0.2.0` release.
 
 ### Completed for the prerelease
 
@@ -62,14 +65,16 @@ stable `v0.2.0` release.
 - [x] Audit README, SPEC, DESIGN, AI, TODO, and CHANGELOG
 - [x] Make LaTeX Workshop save builds use `latexmk` on iCloud Drive paths
 
-### Before promoting to v0.2.0-beta.1
+### Before the next prerelease
 
 - [x] Confirm the GitHub Actions workflow passes after push
 - [x] Use the prerelease on representative English and Japanese projects
 - [x] Fix diagnostics found to be misleading during representative project use
 - [x] Release the accumulated compatibility fixes as `v0.2.0-alpha.2`
-- [ ] Confirm `v0.2.0-alpha.2` on active English and Japanese projects
+- [ ] Confirm `v0.2.0-alpha.3` on active English and Japanese projects
 - [ ] Freeze the command names and primary output formats for the beta
+- [x] Choose `v0.2.0-alpha.3` as the next prerelease
+- [ ] Publish `v0.2.0-alpha.3`
 - [ ] Promote the version to `v0.2.0-beta.1`
 
 ### Before promoting to v0.2.0
@@ -169,7 +174,8 @@ Priority: low. Complete and stabilize the CLI first.
 - [x] `clean` removes only generated build output
 - [x] File transformations constrain references to the project
 - [x] Tests cover spaces and non-ASCII project paths
-- [ ] Handle interrupted multi-file writes transactionally where practical
+- [x] Roll back files created by `split` and `submit` after known write failures
+- [ ] Handle process interruption during multi-file writes where practical
 
 ---
 
@@ -178,7 +184,6 @@ Priority: low. Complete and stabilize the CLI first.
 These ideas are not commitments:
 
 - journal-specific submission profiles
-- arXiv preparation
 - additional document templates
 - reproducible release bundles
 - editor integrations

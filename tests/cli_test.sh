@@ -14,7 +14,7 @@ trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
 run_in "$test_root" "$KICHO" --version
 assert_status 0 '--version'
-assert_contains 'kicho 0.2.0-alpha.2' "$command_stdout" '--version output'
+assert_contains 'kicho 0.2.0-alpha.3' "$command_stdout" '--version output'
 
 run_in "$test_root" "$KICHO"
 assert_status 0 'empty command'

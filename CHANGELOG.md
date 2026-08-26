@@ -4,6 +4,8 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0-alpha.3] - 2026-08-26
+
 ### Fixed
 
 - Roll back files created by `split` when a later write fails, and avoid
