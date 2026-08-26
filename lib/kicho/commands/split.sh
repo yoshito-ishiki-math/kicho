@@ -2,16 +2,16 @@
 # Implementation of `kicho split`.
 
 kicho_command_split_summary() {
-    printf 'Split a single-file project into multiple files.\n'
+    printf 'Split marked source blocks into section files.\n'
 }
 
 kicho_command_split_usage() {
     cat <<'USAGE'
 Usage:
-    kicho split
+    kicho split [FILE]
 
 Move blocks delimited by "% kicho:section NAME" and "% kicho:end"
-from main.tex into sections/NAME.tex.
+from FILE into sections/NAME.tex. FILE defaults to main.tex.
 USAGE
 }
 
@@ -19,10 +19,15 @@ kicho_command_split_examples() {
     cat <<'EXAMPLES'
 Examples:
     kicho split
+    kicho split sections/introduction.tex
 EXAMPLES
 }
 
 kicho_command_split_requires_project() {
+    return 0
+}
+
+kicho_command_split_accepts_arguments() {
     return 0
 }
 
@@ -41,20 +46,95 @@ kicho_split_is_end_marker() {
     [[ "$1" =~ ^[[:space:]]*%[[:space:]]*kicho:end[[:space:]]*$ ]]
 }
 
+kicho_split_resolve_source() {
+    local source="$1"
+    local project_root="$2"
+
+    if [[ -z "$source" ]]; then
+        kicho_error "split source path must not be empty."
+        return 1
+    fi
+
+    case "$source" in
+        /*)
+            kicho_error "split does not allow absolute source paths: '$source'."
+            return 1
+            ;;
+    esac
+
+    case "/$source/" in
+        */../*)
+            kicho_error "split does not allow '..' path components: '$source'."
+            return 1
+            ;;
+    esac
+
+    while [[ "$source" == ./* ]]; do
+        source="${source#./}"
+    done
+
+    case "$source" in
+        *.tex) ;;
+        *)
+            kicho_error "split source must be a .tex file: '$source'."
+            return 1
+            ;;
+    esac
+
+    local directory="${source%/*}"
+    local filename="${source##*/}"
+    if [[ "$directory" == "$source" ]]; then
+        directory="."
+    fi
+
+    local physical_directory
+    if ! physical_directory="$(cd -- "$directory" 2>/dev/null && pwd -P)"; then
+        kicho_error "split source directory was not found: '$directory'."
+        return 1
+    fi
+
+    case "$physical_directory" in
+        "$project_root"|"$project_root"/*) ;;
+        *)
+            kicho_error "split source resolves outside the project: '$source'."
+            return 1
+            ;;
+    esac
+
+    local resolved_path="$physical_directory/$filename"
+    if [[ -L "$resolved_path" ]]; then
+        kicho_error "split does not follow symbolic-link sources: '$source'."
+        return 1
+    fi
+
+    if [[ ! -f "$resolved_path" ]]; then
+        kicho_error "split source file was not found: '$source'."
+        return 1
+    fi
+
+    printf '%s\n' "$source"
+}
+
 kicho_split_validate() {
+    local source_file="$1"
     local current_section=""
     local line
     local section_count=0
     local section_name
     local section_names=" "
 
-    if [[ ! -f "main.tex" ]]; then
-        kicho_error "main.tex was not found."
+    if [[ -L "sections" ]]; then
+        kicho_error "split does not use a symbolic-link sections directory."
         return 1
     fi
 
-    if [[ -e "main.tex.kicho-backup" ]]; then
-        kicho_error "backup already exists: 'main.tex.kicho-backup'."
+    if [[ -e "sections" && ! -d "sections" ]]; then
+        kicho_error "split output directory is not a directory: 'sections'."
+        return 1
+    fi
+
+    if [[ -e "$source_file.kicho-backup" || -L "$source_file.kicho-backup" ]]; then
+        kicho_error "backup already exists: '$source_file.kicho-backup'."
         return 1
     fi
 
@@ -71,7 +151,7 @@ kicho_split_validate() {
                 return 1
             fi
 
-            if [[ -e "sections/$section_name.tex" ]]; then
+            if [[ -e "sections/$section_name.tex" || -L "sections/$section_name.tex" ]]; then
                 kicho_error "split destination already exists: 'sections/$section_name.tex'."
                 return 1
             fi
@@ -90,7 +170,7 @@ kicho_split_validate() {
             kicho_error "invalid split marker: '$line'."
             return 1
         fi
-    done < "main.tex"
+    done < "$source_file"
 
     if [[ -n "$current_section" ]]; then
         kicho_error "split section '$current_section' has no end marker."
@@ -98,44 +178,53 @@ kicho_split_validate() {
     fi
 
     if ((section_count == 0)); then
-        kicho_error "no split markers were found in main.tex."
+        kicho_error "no split markers were found in '$source_file'."
         return 1
     fi
 }
 
 kicho_split_render() {
     local destination="$1"
+    local source_file="$2"
     local current_section=""
     local line
     local section_name
 
     mkdir -p "$destination/sections"
-    : > "$destination/main.tex"
+    : > "$destination/source.tex"
 
     while IFS= read -r line || [[ -n "$line" ]]; do
         section_name=""
         if section_name="$(kicho_split_section_name "$line")"; then
             current_section="$section_name"
             : > "$destination/sections/$section_name.tex"
-            printf '\\input{sections/%s}\n' "$section_name" >> "$destination/main.tex"
+            printf '\\input{sections/%s}\n' "$section_name" >> "$destination/source.tex"
         elif kicho_split_is_end_marker "$line"; then
             current_section=""
         elif [[ -n "$current_section" ]]; then
             printf '%s\n' "$line" >> "$destination/sections/$current_section.tex"
         else
-            printf '%s\n' "$line" >> "$destination/main.tex"
+            printf '%s\n' "$line" >> "$destination/source.tex"
         fi
-    done < "main.tex"
+    done < "$source_file"
 }
 
 kicho_command_split() {
-    if [[ $# -ne 0 ]]; then
-        kicho_error "split does not accept arguments."
+    if [[ $# -gt 1 ]]; then
+        kicho_error "split accepts at most one source file."
         printf "Run 'kicho help split' for usage.\n" >&2
         return 1
     fi
 
-    if ! kicho_split_validate; then
+    local source_file="${1:-main.tex}"
+    local project_root
+    project_root="$(pwd -P)"
+
+    if ! source_file="$(kicho_split_resolve_source "$source_file" "$project_root")"; then
+        return 1
+    fi
+
+    if ! kicho_split_validate "$source_file"; then
         return 1
     fi
 
@@ -145,15 +234,15 @@ kicho_command_split() {
         return 1
     }
 
-    if ! kicho_split_render "$temporary_directory"; then
+    if ! kicho_split_render "$temporary_directory" "$source_file"; then
         rm -rf "$temporary_directory"
         kicho_error "could not prepare split output."
         return 1
     fi
 
-    if ! cp "main.tex" "main.tex.kicho-backup"; then
+    if ! cp "$source_file" "$source_file.kicho-backup"; then
         rm -rf "$temporary_directory"
-        kicho_error "could not create main.tex backup."
+        kicho_error "could not create source backup: '$source_file.kicho-backup'."
         return 1
     fi
 
@@ -168,14 +257,14 @@ kicho_command_split() {
         fi
     done
 
-    if ! cp "$temporary_directory/main.tex" "main.tex"; then
+    if ! cp "$temporary_directory/source.tex" "$source_file"; then
         rm -rf "$temporary_directory"
-        kicho_error "could not update main.tex."
+        kicho_error "could not update split source: '$source_file'."
         return 1
     fi
 
     rm -rf "$temporary_directory"
 
     printf 'Split completed successfully.\n'
-    printf 'Backup: main.tex.kicho-backup\n'
+    printf 'Backup: %s.kicho-backup\n' "$source_file"
 }

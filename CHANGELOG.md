@@ -11,6 +11,8 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Added
 
+- Allow `kicho split FILE` to divide an existing project-local TeX file into
+  additional section files
 - Add `kicho submit --arxiv` for a flattened source ZIP containing `main.bbl`
   instead of `.bib` files, plus a reusable metadata worksheet for manual review
 - Add a project-local LuaTeX font-cache fallback for Kicho, generated

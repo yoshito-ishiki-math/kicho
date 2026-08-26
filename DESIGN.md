@@ -537,8 +537,10 @@ careful file-safety design.
 
 The `split` command uses explicit `% kicho:section NAME` and `% kicho:end`
 markers. Explicit markers avoid attempting to parse arbitrary TeX structure.
-All markers and output paths are validated before writes begin. The original
-`main.tex` is preserved as a backup, and existing section files are never
+The command defaults to `main.tex` and can also split a specified project-local
+`.tex` file, allowing an existing section to be divided further. All source
+paths, markers, and output paths are validated before writes begin. The original
+source is preserved beside it as a backup, and existing section files are never
 overwritten.
 
 ### `flatten`

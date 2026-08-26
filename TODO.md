@@ -94,7 +94,7 @@ stable `v0.2.0` release.
 ### Source Organization
 
 - [ ] Add a safe command for combining selected section files in a specified order
-- [ ] Extend `split` to operate on a specified TeX file, not only `main.tex`
+- [x] Extend `split` to operate on a specified TeX file, not only `main.tex`
 - [ ] Preserve source files by default when combining sections
 - [ ] Refuse existing output destinations and avoid rewriting `main.tex` implicitly
 

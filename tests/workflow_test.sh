@@ -144,6 +144,59 @@ assert_contains 'Main result text.' "$split_project/sections/main-results.tex"
 assert_not_contains 'kicho:section' "$split_project/main.tex"
 assert_not_contains 'Introduction text.' "$split_project/main.tex"
 
+{
+    printf 'Introduction opening.\n'
+    printf '%% kicho:section background\n'
+    printf '\\section{Background}\n'
+    printf 'Background text.\n'
+    printf '%% kicho:end\n'
+    printf 'Introduction closing.\n'
+} > "$split_project/sections/introduction.tex"
+cp "$split_project/sections/introduction.tex" "$test_root/original-introduction.tex"
+
+run_in "$split_project" "$KICHO" split sections/introduction.tex
+assert_status 0 'split an existing section file'
+assert_file "$split_project/sections/introduction.tex.kicho-backup"
+assert_file "$split_project/sections/background.tex"
+assert_same \
+    "$test_root/original-introduction.tex" \
+    "$split_project/sections/introduction.tex.kicho-backup" \
+    'section split backup differs from original'
+assert_contains '\input{sections/background}' "$split_project/sections/introduction.tex"
+assert_contains '\section{Background}' "$split_project/sections/background.tex"
+assert_contains 'Background text.' "$split_project/sections/background.tex"
+assert_not_contains 'Background text.' "$split_project/sections/introduction.tex"
+
+run_in "$split_project" "$KICHO" split ../outside.tex
+assert_status 1 'split rejects parent-path source'
+assert_contains "does not allow '..'" "$command_stderr"
+
+run_in "$split_project" "$KICHO" split /tmp/outside.tex
+assert_status 1 'split rejects absolute source'
+assert_contains 'does not allow absolute source paths' "$command_stderr"
+
+printf 'outside\n' > "$test_root/outside-split.tex"
+ln -s "$test_root/outside-split.tex" "$split_project/linked.tex"
+run_in "$split_project" "$KICHO" split linked.tex
+assert_status 1 'split rejects symbolic-link source'
+assert_contains 'does not follow symbolic-link sources' "$command_stderr"
+
+symlink_sections_project="$test_root/SymlinkSections"
+create_project_root "$symlink_sections_project"
+mkdir -p "$test_root/outside-sections"
+ln -s "$test_root/outside-sections" "$symlink_sections_project/sections"
+{
+    printf '%% kicho:section escaped\n'
+    printf 'must stay inside\n'
+    printf '%% kicho:end\n'
+} > "$symlink_sections_project/main.tex"
+
+run_in "$symlink_sections_project" "$KICHO" split
+assert_status 1 'split rejects symbolic-link sections directory'
+assert_contains 'does not use a symbolic-link sections directory' "$command_stderr"
+assert_not_exists "$test_root/outside-sections/escaped.tex"
+assert_not_exists "$symlink_sections_project/main.tex.kicho-backup"
+
 invalid_split="$test_root/InvalidSplit"
 create_project_root "$invalid_split"
 {

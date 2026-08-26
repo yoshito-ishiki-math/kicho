@@ -311,11 +311,15 @@ assert_contains 'Clean completed successfully.' "$command_stdout" 'clean success
 assert_not_exists "$project/build" 'successful clean removes build directory'
 assert_contains '-C' "$latexmk_log" 'clean invokes latexmk -C'
 
-for command in split flatten submit; do
+for command in flatten submit; do
     run_in "$project" "$KICHO" "$command" unexpected
     assert_status 1 "$command with argument"
     assert_contains "$command does not accept arguments" "$command_stderr" "$command argument error"
 done
+
+run_in "$project" "$KICHO" split one.tex two.tex
+assert_status 1 'split with extra argument'
+assert_contains 'split accepts at most one source file' "$command_stderr" 'split extra-argument error'
 
 run_in "$project" "$KICHO" submit --output
 assert_status 1 'submit missing output value'

@@ -536,13 +536,19 @@ already exists.
 
 ## `split` Command
 
-Split explicitly marked blocks from `main.tex` into `sections/*.tex`.
+Split explicitly marked blocks from a project TeX source into `sections/*.tex`.
 
 ```text
+kicho split [FILE]
+
 % kicho:section introduction
 Section contents.
 % kicho:end
 ```
+
+`FILE` defaults to `main.tex`. A specified file must be a relative `.tex` file
+inside the project; absolute paths, parent-path components, and symbolic-link
+sources are rejected.
 
 The marker name must match `[a-z0-9][a-z0-9-]*`. Each opening marker must have
 one closing marker, blocks cannot be nested, and names cannot be repeated.
@@ -555,7 +561,8 @@ After a successful split, the marked block is replaced with:
 
 and its contents are written to `sections/introduction.tex`. Kicho validates all
 markers and destinations before changing the project, refuses to overwrite an
-existing section file, and saves the original as `main.tex.kicho-backup`.
+existing section file, and saves the original beside the source file with a
+`.kicho-backup` suffix.
 
 ---
 
