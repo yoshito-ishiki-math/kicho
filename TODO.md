@@ -65,16 +65,16 @@ then to the stable `v0.2.0` release.
 - [x] Audit README, SPEC, DESIGN, AI, TODO, and CHANGELOG
 - [x] Make LaTeX Workshop save builds use `latexmk` on iCloud Drive paths
 
-### Before the next prerelease
+### Before promoting to v0.2.0-beta.1
 
 - [x] Confirm the GitHub Actions workflow passes after push
 - [x] Use the prerelease on representative English and Japanese projects
 - [x] Fix diagnostics found to be misleading during representative project use
 - [x] Release the accumulated compatibility fixes as `v0.2.0-alpha.2`
+- [x] Choose `v0.2.0-alpha.3` as the next prerelease
+- [x] Publish `v0.2.0-alpha.3`
 - [ ] Confirm `v0.2.0-alpha.3` on active English and Japanese projects
 - [ ] Freeze the command names and primary output formats for the beta
-- [x] Choose `v0.2.0-alpha.3` as the next prerelease
-- [ ] Publish `v0.2.0-alpha.3`
 - [ ] Promote the version to `v0.2.0-beta.1`
 
 ### Before promoting to v0.2.0
