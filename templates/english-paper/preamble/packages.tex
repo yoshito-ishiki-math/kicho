@@ -2,7 +2,9 @@
 % Fonts
 % ==================================================
 
-\usepackage{fontspec}
+% Keep AMS math fonts under amsart's control. Without no-math, equations in the
+% abstract can fail when amsart switches to its custom \Small font size.
+\usepackage[no-math]{fontspec}
 
 % ==================================================
 % Mathematics

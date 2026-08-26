@@ -150,6 +150,8 @@ assert_file "$project/.latexmkrc" 'initialized .latexmkrc'
 assert_file "$project/.vscode/settings.json" 'initialized VS Code settings'
 assert_file "$project/build/.gitkeep" 'initialized build placeholder'
 assert_contains '{amsart}' "$project/main.tex" 'default English template'
+assert_contains '\usepackage[no-math]{fontspec}' \
+    "$project/preamble/packages.tex" 'English template preserves AMS math fonts'
 assert_not_contains 'program = lualatex' "$project/main.tex" 'English template magic comment'
 assert_contains '"latex-workshop.latex.build.enableMagicComments": false' \
     "$project/.vscode/settings.json" 'English template disables magic comments'

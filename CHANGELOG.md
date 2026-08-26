@@ -4,6 +4,11 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve AMS math fonts in the English template so inline and display
+  mathematics work inside the `amsart` abstract
+
 ### Added
 
 - Add `kicho submit --arxiv` for a flattened source ZIP containing `main.bbl`
