@@ -283,8 +283,10 @@ The MVP checks:
 
 Paths generated through TeX macros cannot be resolved safely by the MVP and
 produce warnings. References that resolve outside the project, reference a
-symbolic link, or name a missing file are errors. The check is static and does
-not replace a real LaTeX build.
+symbolic link, or name a missing file are errors. All matching references on
+each line are checked. Escaped percent signs
+(`\%`) are retained; only unescaped percent signs start comments. The check
+is static and does not replace a real LaTeX build.
 
 Missing optional conventional directories produce warnings. Missing required
 project files or referenced files produce errors.
@@ -521,6 +523,14 @@ The source snapshot copies `main.tex`, `sections/`, `preamble/`, `figures/`,
 `bib/`, and `.latexmkrc` when present. Missing source entries produce warnings
 without failing the archive.
 
+After copying, Kicho runs its static project check inside `source/`. If it
+finds missing or invalid literal references, the archive is still retained,
+but a warning includes the check report and explains that the snapshot may
+not be self-contained. For example, a reference to `parts/result.tex` warns
+when `parts/` was not copied. This does not discover all TeX dependencies or
+certify that the snapshot builds; custom styles and dynamic references still
+require review.
+
 If `build/main.pdf` exists, it is copied to `pdf/main.pdf`. A missing PDF
 produces a warning and leaves the `pdf/` directory empty.
 
@@ -575,7 +585,14 @@ that occupy a complete source line. A missing file, an include cycle, an
 absolute path, or a path containing a `..` component is an error. `.tex` is
 appended when the referenced path has no extension.
 
-Kicho refuses to overwrite an existing `dist/main.tex`.
+Kicho refuses to overwrite an existing `dist/main.tex`, including a dangling
+symbolic link, and rejects a symbolic-link `dist` directory.
+
+Literal blocks in `verbatim`, `verbatim*`, `Verbatim`, `Verbatim*`,
+`BVerbatim`, `LVerbatim`, `lstlisting`, and `minted` environments are copied
+without expanding their contents. An unclosed literal block is an error.
+Custom verbatim environments and arbitrary TeX macro parsing are unsupported.
+The same protection applies to both submission modes.
 
 ---
 

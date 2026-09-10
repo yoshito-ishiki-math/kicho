@@ -149,15 +149,17 @@ kicho_check_scan_line_reference() {
     local kind="$3"
     local reference
 
-    if [[ "$line" =~ $pattern ]]; then
+    while [[ "$line" =~ $pattern ]]; do
         reference="${BASH_REMATCH[2]}"
+        # Save the unscanned suffix before recursive checks replace BASH_REMATCH.
+        line="${line#*"${BASH_REMATCH[0]}"}"
         if kicho_check_resolve_reference "$reference" "$kind"; then
             kicho_check_ok "$kind: $reference"
             if [[ "$kind" == "input" ]]; then
                 kicho_check_scan_tex_file "$KICHO_CHECK_RESOLVED"
             fi
         fi
-    fi
+    done
 
     return 0
 }
@@ -186,7 +188,7 @@ kicho_check_scan_tex_file() {
     local line
     local input_pattern='\\(input|include)[[:space:]]*\{([^{}]+)\}'
     local addbib_pattern='\\addbibresource([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
-    local bibliography_pattern='\\bibliography[[:space:]]*\{([^{}]+)\}'
+    local bibliography_pattern='\\bibliography([[:space:]]*)\{([^{}]+)\}'
     local figure_pattern='\\includegraphics([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
 
     if [[ "$KICHO_CHECK_VISITED" == *"|$source_file|"* ]]; then
@@ -195,22 +197,24 @@ kicho_check_scan_tex_file() {
     KICHO_CHECK_VISITED+="|$source_file|"
 
     while IFS= read -r line || [[ -n "$line" ]]; do
-        line="${line%%\%*}"
+        line="$(kicho_tex_strip_comment "$line")"
 
         kicho_check_scan_line_reference "$line" "$input_pattern" input || true
 
-        if [[ "$line" =~ $addbib_pattern ]]; then
-            kicho_check_scan_bibliography "${BASH_REMATCH[2]}"
-        elif [[ "$line" =~ $bibliography_pattern ]]; then
-            kicho_check_scan_bibliography "${BASH_REMATCH[1]}"
-        fi
+        local remaining="$line"
+        while [[ "$remaining" =~ $addbib_pattern ]]; do
+            local value="${BASH_REMATCH[2]}"
+            remaining="${remaining#*"${BASH_REMATCH[0]}"}"
+            kicho_check_scan_bibliography "$value"
+        done
+        remaining="$line"
+        while [[ "$remaining" =~ $bibliography_pattern ]]; do
+            local value="${BASH_REMATCH[2]}"
+            remaining="${remaining#*"${BASH_REMATCH[0]}"}"
+            kicho_check_scan_bibliography "$value"
+        done
 
-        if [[ "$line" =~ $figure_pattern ]]; then
-            local figure_reference="${BASH_REMATCH[2]}"
-            if kicho_check_resolve_reference "$figure_reference" figure; then
-                kicho_check_ok "figure: $figure_reference"
-            fi
-        fi
+        kicho_check_scan_line_reference "$line" "$figure_pattern" figure || true
     done < "$relative_file"
 }
 

@@ -455,6 +455,76 @@ assert_contains 'could not create submission directory' "$command_stderr"
 assert_not_exists "$arxiv_move_failure/submission"
 assert_not_exists "$arxiv_move_failure/arxiv-metadata.txt"
 
+literal_project="$test_root/Literal Blocks"
+create_project_root "$literal_project"
+mkdir -p "$literal_project/parts"
+cat > "$literal_project/main.tex" <<'TEX'
+% \begin{verbatim} is only a comment here.
+\input{parts/body}
+TEX
+for environment in verbatim 'verbatim*' Verbatim 'Verbatim*' BVerbatim LVerbatim lstlisting minted; do
+    {
+        printf '\\begin{%s}\n' "$environment"
+        printf '\\input{does-not-exist}\n'
+        printf '\\include{also-missing}\n'
+        printf '\\end{%s}\n' "$environment"
+    } >> "$literal_project/parts/body.tex"
+done
+printf '\\input{parts/after}\n' >> "$literal_project/parts/body.tex"
+printf 'AFTER LITERAL BLOCKS\n' > "$literal_project/parts/after.tex"
+{
+    printf '%% \\begin{verbatim} is only a comment here.\n'
+    sed '$d' "$literal_project/parts/body.tex"
+    cat "$literal_project/parts/after.tex"
+} > "$test_root/expected-literal.tex"
+run_in "$literal_project" "$KICHO" flatten
+assert_status 0 'flatten preserves known literal blocks'
+assert_same "$test_root/expected-literal.tex" "$literal_project/dist/main.tex" \
+    'flatten changed literal block contents or failed to resume expansion'
+run_in "$literal_project" "$KICHO" submit
+assert_status 0 'submit preserves literal blocks'
+assert_same "$test_root/expected-literal.tex" "$literal_project/submission/main.tex" \
+    'submission changed literal block contents'
+run_in "$literal_project" "$KICHO" submit --arxiv --output arxiv-package
+assert_status 0 'arxiv submit preserves literal blocks'
+unzip -p "$literal_project/arxiv-package/arxiv-source.zip" main.tex > "$test_root/arxiv-literal.tex"
+assert_same "$test_root/expected-literal.tex" "$test_root/arxiv-literal.tex" \
+    'arxiv submission changed literal block contents'
+
+unclosed_project="$test_root/Unclosed Literal"
+create_project_root "$unclosed_project"
+printf '\\begin{verbatim}\n\\input{missing}\n' > "$unclosed_project/main.tex"
+run_in "$unclosed_project" "$KICHO" flatten
+assert_status 1 'flatten rejects unclosed literal environment'
+assert_contains 'unclosed literal environment' "$command_stderr"
+assert_not_exists "$unclosed_project/dist/main.tex"
+run_in "$unclosed_project" "$KICHO" submit
+assert_status 1 'submit does not publish unclosed literal environment'
+assert_not_exists "$unclosed_project/submission"
+
+linked_dist_project="$test_root/Linked Dist"
+create_project_root "$linked_dist_project"
+printf 'source\n' > "$linked_dist_project/main.tex"
+mkdir -p "$test_root/external-dist"
+ln -s "$test_root/external-dist" "$linked_dist_project/dist"
+run_in "$linked_dist_project" "$KICHO" flatten
+assert_status 1 'flatten rejects symbolic-link output directory'
+assert_contains 'symbolic-link dist directory' "$command_stderr"
+assert_not_exists "$test_root/external-dist/main.tex"
+
+linked_file_project="$test_root/Linked Output File"
+create_project_root "$linked_file_project"
+printf 'source\n' > "$linked_file_project/main.tex"
+mkdir -p "$linked_file_project/dist"
+ln -s "$test_root/absent-output.tex" "$linked_file_project/dist/main.tex"
+run_in "$linked_file_project" "$KICHO" flatten
+assert_status 1 'flatten preserves dangling output link'
+assert_contains 'destination already exists' "$command_stderr"
+if [[ ! -L "$linked_file_project/dist/main.tex" ]]; then
+    fail 'flatten replaced a dangling output link'
+fi
+assert_not_exists "$test_root/absent-output.tex"
+
 if ((failures > 0)); then
     printf '%d workflow test(s) failed.\n' "$failures" >&2
     exit 1

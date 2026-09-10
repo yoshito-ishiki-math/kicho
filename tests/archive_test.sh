@@ -178,6 +178,23 @@ json_expected='論文 quote\" slash\\ line\n tab\t control\u0001'
 json_actual="$(kicho_json_escape "$json_input")"
 assert_equal "$json_expected" "$json_actual" 'JSON escaping'
 
+omitted_project="$test_root/Omitted Dependencies"
+create_project "$omitted_project"
+mkdir -p "$omitted_project/parts"
+printf '\\input{sections/introduction}\n' > "$omitted_project/main.tex"
+printf '\\input{parts/result}\n' > "$omitted_project/sections/introduction.tex"
+printf 'A result.\n' > "$omitted_project/parts/result.tex"
+run_in "$omitted_project" "$KICHO" archive
+assert_status 0 'archive retains snapshot with omitted dependencies'
+assert_contains 'archived source may not be self-contained' "$command_stderr"
+assert_contains "input file was not found: 'parts/result.tex'" "$command_stderr"
+omitted_archive="$(archive_directory "$omitted_project")"
+assert_file "$omitted_archive/source/main.tex"
+assert_file "$omitted_archive/metadata/archive.json"
+assert_not_exists "$omitted_archive/source/parts/result.tex"
+assert_contains 'A result.' "$omitted_project/parts/result.tex"
+assert_not_contains 'archived source may not be self-contained' "$test_root/archive.stderr"
+
 if ((failures > 0)); then
     printf '%d archive test(s) failed.\n' "$failures" >&2
     exit 1

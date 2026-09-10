@@ -555,7 +555,10 @@ The `flatten` command recursively expands full-line `\input` and `\include`
 statements. Restricting expansion to complete lines keeps the MVP behavior
 explicit and avoids pretending to be a complete TeX parser. Paths are confined
 to the project, cycles are rejected, and output is written to `dist/main.tex`
-without changing source files.
+without changing source files. Known verbatim/listing environments are tracked
+locally during each source scan and their contents are preserved. Shared
+comment stripping distinguishes escaped percent signs from comments. Output
+directory links and existing destination links are rejected before publication.
 
 ### `archive`
 
@@ -575,7 +578,10 @@ The snapshot contains:
 Generated temporary files other than the compiled PDF are excluded. Git is
 queried before archive output is created so the archive itself does not affect
 the recorded dirty state. Kicho must not perform Git mutations as part of
-archiving.
+archiving. After copying, the existing static checker runs in the snapshot
+in a subshell; a failing check is reported as a warning with its diagnostics.
+This exposes omitted literal dependencies without silently broadening the
+fixed source-copy policy or claiming complete TeX dependency analysis.
 
 ### `submit`
 

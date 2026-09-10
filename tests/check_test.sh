@@ -111,6 +111,39 @@ run_check "$test_root" unexpected
 assert_status 1 'check argument error'
 assert_contains 'check does not accept arguments' "$command_stderr" 'check argument stderr'
 
+multiple_project="$test_root/Multiple References"
+cp -R "$valid_project" "$multiple_project"
+cat > "$multiple_project/main.tex" <<'TEX'
+\input{sections/introduction}\input{sections/missing}
+\includegraphics{figures/plot}\includegraphics{figures/missing}
+\addbibresource{bib/references.bib}\addbibresource{bib/missing.bib}
+\bibliography{bib/references}\bibliography{bib/absent}
+TEX
+run_check "$multiple_project"
+assert_status 1 'all same-line references checked'
+assert_contains "input file was not found: 'sections/missing.tex'" "$command_stdout"
+assert_contains "figure file was not found: 'figures/missing'" "$command_stdout"
+assert_contains "bib file was not found: 'bib/missing.bib'" "$command_stdout"
+assert_contains "bib file was not found: 'bib/absent.bib'" "$command_stdout"
+assert_contains 'Errors:   4' "$command_stdout"
+
+cat > "$multiple_project/main.tex" <<'TEX'
+50\% \input{sections/missing}
+50\\\% \includegraphics{figures/missing}
+TEX
+run_check "$multiple_project"
+assert_status 1 'escaped percent retains following references'
+assert_contains 'Errors:   2' "$command_stdout"
+
+cat > "$multiple_project/main.tex" <<'TEX'
+% \input{sections/missing}
+50\\% \input{sections/missing}
+50\% remaining % \input{sections/missing}
+TEX
+run_check "$multiple_project"
+assert_status 0 'unescaped percent starts a comment'
+assert_contains 'Errors:   0' "$command_stdout"
+
 if ((failures > 0)); then
     printf '%d check test(s) failed.\n' "$failures" >&2
     exit 1

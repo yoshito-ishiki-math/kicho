@@ -82,6 +82,15 @@ kicho_archive_copy_pdf() {
     fi
 }
 
+kicho_archive_check_source() {
+    local source="$1"
+    local report
+    if ! report="$(cd -- "$source" && kicho_command_check)"; then
+        printf 'Warning: archived source may not be self-contained; static checks found missing or invalid dependencies.\n' >&2
+        printf '%s\n' "$report" >&2
+    fi
+}
+
 kicho_command_archive() {
     if [[ $# -ne 0 ]]; then
         kicho_error "archive does not accept arguments."
@@ -115,6 +124,7 @@ kicho_command_archive() {
 
     kicho_archive_create_directories "$archive_root"
     kicho_archive_copy_source "$archive_root/source"
+    kicho_archive_check_source "$archive_root/source"
     kicho_archive_copy_pdf "$archive_root/pdf"
     kicho_metadata_write_manifest \
         "$archive_root/metadata/archive.json" \

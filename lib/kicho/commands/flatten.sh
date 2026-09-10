@@ -100,8 +100,27 @@ kicho_flatten_file() {
     local line
     local reference
     local resolved_path
+    local literal_environment=""
+    local active_line
 
     while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ -n "$literal_environment" ]]; then
+            printf '%s\n' "$line"
+            if [[ "$line" == *"\end{$literal_environment}"* ]]; then
+                literal_environment=""
+            fi
+            continue
+        fi
+
+        active_line="$(kicho_tex_strip_comment "$line")"
+        if literal_environment="$(kicho_tex_literal_environment "$active_line")"; then
+            printf '%s\n' "$line"
+            if [[ "$line" == *"\end{$literal_environment}"* ]]; then
+                literal_environment=""
+            fi
+            continue
+        fi
+
         reference=""
         if reference="$(kicho_flatten_reference "$line")"; then
             if ! resolved_path="$(kicho_flatten_resolve_path "$reference" "$project_root")"; then
@@ -123,6 +142,12 @@ kicho_flatten_file() {
             printf '%s\n' "$line"
         fi
     done < "$source_file"
+
+    if [[ -n "$literal_environment" ]]; then
+        kicho_error "unclosed literal environment '$literal_environment' in '$source_file'."
+        return 1
+    fi
+    return 0
 }
 
 kicho_flatten_write() {
@@ -152,7 +177,12 @@ kicho_command_flatten() {
         return 1
     fi
 
-    if [[ -e "dist/main.tex" ]]; then
+    if [[ -L "dist" ]]; then
+        kicho_error "flatten does not use a symbolic-link dist directory."
+        return 1
+    fi
+
+    if [[ -e "dist/main.tex" || -L "dist/main.tex" ]]; then
         kicho_error "flatten destination already exists: 'dist/main.tex'."
         return 1
     fi

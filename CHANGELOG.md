@@ -4,6 +4,13 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve known verbatim and listing environments during flattening and submission
+- Check every literal file reference on a line and retain escaped percent signs
+- Reject symbolic-link flatten output directories and dangling destination links
+- Warn when static checks find missing or invalid dependencies in archived sources
+
 ## [0.2.0-alpha.3] - 2026-08-26
 
 ### Fixed
