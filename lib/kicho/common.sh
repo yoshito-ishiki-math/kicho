@@ -7,13 +7,24 @@ kicho_error() {
     printf 'Error: %s\n' "$1" >&2
 }
 
-# Under ordinary TeX catcodes, a backslash consumes the following control
-# symbol. Thus an odd run of backslashes escapes %, while an even run does not.
+# Mask comments and inline literal examples without changing character offsets.
 kicho_tex_strip_comment() {
-    local text="$1"
-    local result=""
-    local character
+    local text="$1" result="" character delimiter literal
+    local verb_pattern='^\\verb\*?([^a-zA-Z])'
     while [[ -n "$text" ]]; do
+        if [[ "$text" == '\verb'* && "$text" =~ $verb_pattern ]]; then
+            literal="${BASH_REMATCH[0]}"
+            delimiter="${BASH_REMATCH[1]}"
+            text="${text:${#literal}}"
+            result+="${literal//?/ }"
+            while [[ -n "$text" ]]; do
+                character="${text:0:1}"
+                text="${text:1}"
+                result+=' '
+                [[ "$character" == "$delimiter" ]] && break
+            done
+            continue
+        fi
         character="${text:0:1}"
         text="${text:1}"
         case "$character" in
@@ -29,6 +40,25 @@ kicho_tex_strip_comment() {
         esac
     done
     printf '%s\n' "$result"
+}
+
+# Produce only active text for static consumers, retaining one line per source line.
+kicho_tex_active_file() {
+    local line active environment=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ -n "$environment" ]]; then
+            [[ "$line" == *"\end{$environment}"* ]] && environment=""
+            printf '\n'
+            continue
+        fi
+        active="$(kicho_tex_strip_comment "$line")"
+        if environment="$(kicho_tex_literal_environment "$active")"; then
+            [[ "$line" == *"\end{$environment}"* ]] && environment=""
+            printf '\n'
+        else
+            printf '%s\n' "$active"
+        fi
+    done < "$1"
 }
 
 kicho_tex_literal_environment() {

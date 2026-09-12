@@ -167,7 +167,7 @@ kicho_submit_tex_uses_bibliography() {
     local source="$1"
 
     grep -E '\\(addbibresource|bibliography|printbibliography)(\{|\[|[[:space:]]|$)' \
-        "$source" >/dev/null 2>&1
+        <(kicho_tex_active_file "$source") >/dev/null 2>&1
 }
 
 kicho_submit_extract_metadata() {
@@ -406,6 +406,11 @@ kicho_submit_arxiv() {
         fi
     fi
 
+    if ! kicho_copy_source_dependencies "$source_directory" arxiv; then
+        rm -rf "$temporary_directory"
+        return 1
+    fi
+
     local metadata_source="arxiv-metadata.txt"
     local generated_metadata="false"
     if [[ -f "$metadata_source" ]]; then
@@ -515,6 +520,11 @@ kicho_submit_standard() {
         ! kicho_submit_copy_if_exists ".latexmkrc" "$temporary_directory/.latexmkrc"; then
         rm -rf "$temporary_directory"
         kicho_error "could not copy submission source files."
+        return 1
+    fi
+
+    if ! kicho_copy_source_dependencies "$temporary_directory" standard; then
+        rm -rf "$temporary_directory"
         return 1
     fi
 

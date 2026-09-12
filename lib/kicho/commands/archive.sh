@@ -124,6 +124,7 @@ kicho_command_archive() {
 
     kicho_archive_create_directories "$archive_root"
     kicho_archive_copy_source "$archive_root/source"
+    kicho_copy_source_dependencies "$archive_root/source" archive
     kicho_archive_check_source "$archive_root/source"
     kicho_archive_copy_pdf "$archive_root/pdf"
     kicho_metadata_write_manifest \

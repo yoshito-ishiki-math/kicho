@@ -4,6 +4,11 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+- Preserve project-local dependencies in archives and submission packages,
+  including inputs outside conventional directories and inline input references
+- Ignore comments and literal examples when detecting bibliography usage
+- Avoid treating inline verbatim examples as environment openings
+
 ### Fixed
 
 - Preserve known verbatim and listing environments during flattening and submission

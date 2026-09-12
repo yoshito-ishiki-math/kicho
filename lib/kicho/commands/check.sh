@@ -23,6 +23,7 @@ EXAMPLES
 }
 
 kicho_check_ok() {
+    [[ "${KICHO_CHECK_QUIET:-false}" == true ]] && return 0
     printf '  OK    %s\n' "$1"
 }
 
@@ -121,6 +122,8 @@ kicho_check_resolve_reference() {
 
     if [[ -f "$physical_directory/$filename" ]]; then
         KICHO_CHECK_RESOLVED="$physical_directory/$filename"
+        KICHO_CHECK_FILES+=("$KICHO_CHECK_RESOLVED")
+        KICHO_CHECK_KINDS+=("$kind")
         return 0
     fi
 
@@ -134,6 +137,8 @@ kicho_check_resolve_reference() {
 
             if [[ -f "$physical_directory/$filename.$extension" ]]; then
                 KICHO_CHECK_RESOLVED="$physical_directory/$filename.$extension"
+                KICHO_CHECK_FILES+=("$KICHO_CHECK_RESOLVED")
+                KICHO_CHECK_KINDS+=("$kind")
                 return 0
             fi
         done
@@ -184,11 +189,11 @@ kicho_check_scan_bibliography() {
 
 kicho_check_scan_tex_file() {
     local source_file="$1"
-    local relative_file="${source_file#"$KICHO_CHECK_ROOT/"}"
     local line
     local input_pattern='\\(input|include)[[:space:]]*\{([^{}]+)\}'
     local addbib_pattern='\\addbibresource([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
     local bibliography_pattern='\\bibliography([[:space:]]*)\{([^{}]+)\}'
+    local usage_pattern='\\(addbibresource|bibliography|printbibliography)(\{|\[|[[:space:]]|$)'
     local figure_pattern='\\includegraphics([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
 
     if [[ "$KICHO_CHECK_VISITED" == *"|$source_file|"* ]]; then
@@ -197,8 +202,9 @@ kicho_check_scan_tex_file() {
     KICHO_CHECK_VISITED+="|$source_file|"
 
     while IFS= read -r line || [[ -n "$line" ]]; do
-        line="$(kicho_tex_strip_comment "$line")"
-
+        if [[ "$line" =~ $usage_pattern ]]; then
+            KICHO_CHECK_USES_BIBLIOGRAPHY=true
+        fi
         kicho_check_scan_line_reference "$line" "$input_pattern" input || true
 
         local remaining="$line"
@@ -215,7 +221,7 @@ kicho_check_scan_tex_file() {
         done
 
         kicho_check_scan_line_reference "$line" "$figure_pattern" figure || true
-    done < "$relative_file"
+    done < <(kicho_tex_active_file "$source_file")
 }
 
 kicho_command_check() {
@@ -225,6 +231,8 @@ kicho_command_check() {
         return 1
     fi
 
+    KICHO_CHECK_FILES=()
+    KICHO_CHECK_KINDS=()
     KICHO_CHECK_ERRORS=0
     KICHO_CHECK_WARNINGS=0
     KICHO_CHECK_VISITED=''
@@ -278,5 +286,40 @@ kicho_command_check() {
     fi
 
     printf '\nAll project checks passed.\n'
+    return 0
+}
+
+# Resolve in the live project before copying, never in the destination tree.
+kicho_copy_source_dependencies() {
+    local destination="$1" mode="$2"
+    local KICHO_CHECK_QUIET=true KICHO_CHECK_USES_BIBLIOGRAPHY=false
+    local KICHO_CHECK_ROOT KICHO_CHECK_VISITED='' KICHO_CHECK_RESOLVED=''
+    local KICHO_CHECK_ERRORS=0 KICHO_CHECK_WARNINGS=0
+    local KICHO_CHECK_FILES=() KICHO_CHECK_KINDS=()
+    KICHO_CHECK_ROOT="$(pwd -P)"
+    if [[ -f main.tex ]]; then
+        kicho_check_scan_tex_file "$KICHO_CHECK_ROOT/main.tex" >&2
+    fi
+    if ((KICHO_CHECK_ERRORS > 0)) && [[ "$mode" != archive ]]; then
+        kicho_error 'submission has missing or unsafe source dependencies.'
+        return 1
+    fi
+    if [[ "$mode" == arxiv && "$KICHO_CHECK_USES_BIBLIOGRAPHY" == true && ! -f build/main.bbl ]]; then
+        kicho_error 'build/main.bbl was not found for an included document that uses a bibliography.'
+        return 1
+    fi
+    local i file relative
+    for ((i=0; i<${#KICHO_CHECK_FILES[@]}; i++)); do
+        [[ "$mode" == arxiv && "${KICHO_CHECK_KINDS[i]}" == bib ]] && continue
+        file="${KICHO_CHECK_FILES[i]}"
+        relative="${file#"$KICHO_CHECK_ROOT/"}"
+        # main.tex in submission is the flattened document.
+        [[ "$relative" == main.tex ]] && continue
+        if ! mkdir -p "$destination/$(dirname "$relative")" ||
+            ! cp "$file" "$destination/$relative"; then
+            kicho_error "could not preserve dependency: '$relative'."
+            return 1
+        fi
+    done
     return 0
 }

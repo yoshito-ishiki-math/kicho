@@ -525,6 +525,46 @@ if [[ ! -L "$linked_file_project/dist/main.tex" ]]; then
 fi
 assert_not_exists "$test_root/absent-output.tex"
 
+
+examples_project="$test_root/Inline Examples"
+create_project_root "$examples_project"
+mkdir -p "$examples_project/parts"
+cat > "$examples_project/main.tex" <<'TEX'
+\documentclass{article}
+% \bibliography{absent}
+\begin{document}
+Example: \verb|\begin{verbatim}| and \verb*+\bibliography{absent}+
+\begin{verbatim}
+\bibliography{absent}
+\end{verbatim}
+Text. \input{parts/body}
+\end{document}
+TEX
+printf '\\input{parts/nested}\n' > "$examples_project/parts/body.tex"
+printf 'NESTED BODY\n' > "$examples_project/parts/nested.tex"
+run_in "$examples_project" "$KICHO" submit --arxiv
+assert_status 0 'arxiv ignores literal bibliography and preserves inline dependencies'
+assert_zip_contains 'parts/body.tex' "$examples_project/submission/arxiv-source.zip"
+assert_zip_contains 'parts/nested.tex' "$examples_project/submission/arxiv-source.zip"
+assert_zip_not_contains 'main.bbl' "$examples_project/submission/arxiv-source.zip"
+unzip -p "$examples_project/submission/arxiv-source.zip" main.tex > "$test_root/inline-example.tex"
+assert_contains '\verb|\begin{verbatim}|' "$test_root/inline-example.tex"
+run_in "$examples_project" "$KICHO" submit --output standard
+assert_status 0 'standard submission preserves inline dependencies'
+assert_file "$examples_project/standard/parts/body.tex"
+assert_file "$examples_project/standard/parts/nested.tex"
+printf 'Text. \\input{parts/absent}\n' > "$examples_project/main.tex"
+run_in "$examples_project" "$KICHO" submit --arxiv --output broken
+assert_status 1 'arxiv refuses missing inline dependencies'
+assert_not_exists "$examples_project/broken"
+
+printf 'Text. \\input{parts/nested}\n' > "$examples_project/main.tex"
+printf '\\printbibliography\n' > "$examples_project/parts/nested.tex"
+run_in "$examples_project" "$KICHO" submit --arxiv --output missing-inline-bbl
+assert_status 1 'inline input bibliography requires bbl'
+assert_contains 'build/main.bbl was not found' "$command_stderr"
+assert_not_exists "$examples_project/missing-inline-bbl"
+
 if ((failures > 0)); then
     printf '%d workflow test(s) failed.\n' "$failures" >&2
     exit 1

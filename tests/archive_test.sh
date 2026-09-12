@@ -186,12 +186,15 @@ printf '\\input{parts/result}\n' > "$omitted_project/sections/introduction.tex"
 printf 'A result.\n' > "$omitted_project/parts/result.tex"
 run_in "$omitted_project" "$KICHO" archive
 assert_status 0 'archive retains snapshot with omitted dependencies'
-assert_contains 'archived source may not be self-contained' "$command_stderr"
-assert_contains "input file was not found: 'parts/result.tex'" "$command_stderr"
+assert_not_contains 'archived source may not be self-contained' "$command_stderr"
+
 omitted_archive="$(archive_directory "$omitted_project")"
 assert_file "$omitted_archive/source/main.tex"
 assert_file "$omitted_archive/metadata/archive.json"
-assert_not_exists "$omitted_archive/source/parts/result.tex"
+assert_file "$omitted_archive/source/parts/result.tex"
+if ! cmp -s "$omitted_project/parts/result.tex" "$omitted_archive/source/parts/result.tex"; then
+    fail "archived dependency differs from source"
+fi
 assert_contains 'A result.' "$omitted_project/parts/result.tex"
 assert_not_contains 'archived source may not be self-contained' "$test_root/archive.stderr"
 

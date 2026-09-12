@@ -580,8 +580,8 @@ queried before archive output is created so the archive itself does not affect
 the recorded dirty state. Kicho must not perform Git mutations as part of
 archiving. After copying, the existing static checker runs in the snapshot
 in a subshell; a failing check is reported as a warning with its diagnostics.
-This exposes omitted literal dependencies without silently broadening the
-fixed source-copy policy or claiming complete TeX dependency analysis.
+This reports unavailable dependencies after resolved project-local dependencies
+have been copied, without claiming complete TeX dependency analysis.
 
 ### `submit`
 
@@ -867,3 +867,10 @@ The following decisions are currently accepted:
 - Static validation reports only references it can resolve conservatively.
 - Command help is generated from metadata and runs before precondition checks.
 - The supported shell baseline is the macOS system Bash 3.2.
+
+
+Dependency preservation reuses the static checker's resolved file list. Archives
+and submission packages copy these dependencies with their project-relative
+paths; arXiv omits bibliography databases. Scans mask inline verbatim examples
+and skip known literal blocks. This remains a literal-reference scanner, not a
+TeX interpreter; dynamic references are reported for manual review.

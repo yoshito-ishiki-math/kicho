@@ -527,7 +527,7 @@ After copying, Kicho runs its static project check inside `source/`. If it
 finds missing or invalid literal references, the archive is still retained,
 but a warning includes the check report and explains that the snapshot may
 not be self-contained. For example, a reference to `parts/result.tex` warns
-when `parts/` was not copied. This does not discover all TeX dependencies or
+if the referenced file was missing from the live source. This does not discover all TeX dependencies or
 certify that the snapshot builds; custom styles and dynamic references still
 require review.
 
@@ -666,3 +666,16 @@ It should not require users to abandon:
 - standard TeX directory structures
 
 Kicho-specific configuration should be introduced only when it provides functionality that cannot be represented cleanly through existing LaTeX tools.
+
+
+### Dependency preservation and literal examples
+
+Archives additionally copy statically resolved project-local input, bibliography,
+and figure dependencies, preserving relative paths (including `parts/`).
+Submission packages also retain referenced input and figure files, so inline
+input commands that flatten does not expand remain usable. arXiv packages still
+exclude bibliography databases and require the compiled bibliography for active
+bibliography commands. Missing or unsafe dependencies stop submission; archives
+retain available sources and report missing dependencies as warnings.
+Commented commands, inline `\verb` / `\verb*` examples, and known literal
+blocks are ignored when discovering references and bibliography usage.
