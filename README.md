@@ -1,5 +1,7 @@
 # Kicho
 
+English | [日本語](README.ja.md)
+
 Kicho is a command-line workflow manager for LaTeX research projects.
 
 It aims to support the entire lifecycle of mathematical writing, from project creation to journal submission, while remaining compatible with standard LaTeX workflows.
