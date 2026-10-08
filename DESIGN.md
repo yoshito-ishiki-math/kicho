@@ -539,6 +539,24 @@ careful file-safety design.
 
 ## File-Transformation Command Design
 
+### Paragraph review marks
+
+`lib/kicho/latex/paragraphids.sty` is the maintained package source. The
+`paraids` shell command delegates installation and literal-ID operations to
+`lib/kicho/paraids.py`, using Python's standard library. Package bytes and the
+existing identifier format stay compatible with copies previously distributed
+through writing skills. Skills no longer own runtime code or package assets.
+
+Submission calls the same helper's internal release preparation only after
+copying sources into its temporary workspace. A balanced-delimiter scanner
+masks comments and common literal environments, comments complete editorial
+commands, and validates all transformations before writing them. It preserves
+body text, paragraph boundaries, and unrelated package loading, and fails on
+unsupported active package settings. This is a literal source transformation,
+not a TeX expansion engine. A marked standard submission invokes the existing
+build command in the cleaned workspace and copies that new PDF into the export;
+it never substitutes the annotated working PDF after a rebuild failure.
+
 ### `split`
 
 The `split` command uses explicit `% kicho:section NAME` and `% kicho:end`

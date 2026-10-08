@@ -32,6 +32,54 @@ Future functionality should normally be introduced as additional subcommands.
 
 ## Commands
 
+### `paraids`
+
+Manage stable paragraph identifiers through Kicho. Kicho distributes
+`paragraphids.sty`; writing skills only describe its use.
+
+```bash
+kicho paraids install --root PATH
+kicho paraids new --root PATH --count 3
+kicho paraids find p-a7f3c921e40b --root PATH
+kicho paraids check --root PATH
+```
+
+The root defaults to the current directory. `install` copies the bundled
+package to an existing manuscript directory without editing any TeX source.
+It succeeds without changes for an identical copy and refuses a different
+existing copy or a symbolic-link destination. Review customizations before
+deliberately replacing an older copy. Existing projects are never upgraded
+automatically, and `init` does not insert paragraph tags.
+
+`new`, `find`, and `check` retain the existing helper's literal UTF-8 scanning
+and do not edit sources. `new` reserves commented IDs. `find` and `check` accept
+`--include-comments`; scope checks to the active manuscript, excluding separate
+versions. IDs use `p-` followed by twelve random lowercase hexadecimal digits.
+The package retains the independent show/hide switch, physical-left placement,
+and red `\paranote` annotations. See [paragraph-ID usage](docs/paragraphids.md).
+
+The command requires Python 3.9 or later with only its standard library.
+Invalid arguments and operational failures are nonzero; `find` also returns
+nonzero when the ID is absent, and `check` when IDs are invalid or duplicated.
+
+Both submission modes use the same Python helper on the temporary submission
+copy. They comment out literal paragraph-ID and note commands, their package
+settings, and paragraphids/showkeys loading. Mixed package lists retain other
+packages, multiline notes are fully commented, and already-commented material
+is unchanged. The package is omitted. Unsupported or malformed editorial
+syntax fails before the destination is created. The helper does not expand TeX
+macros; inspect the compiled release when a project uses custom wrappers.
+
+Standard submission rebuilds its PDF from the cleaned copy when editorial
+material is present, including commented markers, instead of copying a possibly
+annotated working PDF. It requires a successful `latexmk` build and a fresh
+`build/main.pdf`. Build intermediates are removed from the package. Untagged
+standard submissions retain their existing PDF-copy behavior. arXiv submission
+remains a source-only export. Neither mode edits the working manuscript or
+uploads anything. `archive` retains the local package and active review marks.
+
+---
+
 ### `init`
 
 Create a new LaTeX research project.

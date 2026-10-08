@@ -4,6 +4,11 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+- Manage the paragraphids package and literal IDs with `paraids install/new/find/check`
+- Disable paragraph IDs, red notes, and showkeys in submission sources; rebuild
+  marked standard-submission PDFs and omit the editorial package
+- Preserve local style files, including the review package, in archives
+
 - Preserve project-local dependencies in archives and submission packages,
   including inputs outside conventional directories and inline input references
 - Ignore comments and literal examples when detecting bibliography usage

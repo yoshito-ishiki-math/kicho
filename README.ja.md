@@ -210,3 +210,15 @@ Kichoは、LaTeXテンプレートの提供にとどまらず、`latexmk`、LuaL
 ## ライセンス
 
 MIT License
+
+## 段落IDと編集注記
+
+Kichoがパッケージと補助ツールを管理します。既存原稿のIDとパッケージの版を保持し、明示的な導入時だけコピーします。
+
+```bash
+kicho paraids install --root MyPaper
+kicho paraids new --root MyPaper --count 3
+kicho paraids check --root MyPaper
+```
+
+`submit` と `submit --arxiv` は提出用コピーのID・赤字注記を無効化します。通常の提出では注記を除いたPDFを再ビルドします。Python 3.9以上が必要です。[利用方法](docs/paragraphids.md)を参照してください。

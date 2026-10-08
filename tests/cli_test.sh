@@ -20,13 +20,13 @@ run_in "$test_root" "$KICHO"
 assert_status 0 'empty command'
 assert_contains 'Kicho — Workflow manager for LaTeX research projects.' "$command_stdout" 'general help heading'
 
-for command in archive build check clean doctor flatten init split submit; do
+for command in archive build check clean doctor flatten init paraids split submit; do
     run_in "$test_root" "$KICHO" help "$command"
     assert_status 0 "help $command"
     assert_contains "kicho $command" "$command_stdout" "help $command usage"
 done
 
-for command in archive build check clean doctor flatten init split submit; do
+for command in archive build check clean doctor flatten init paraids split submit; do
     for help_option in -h --help; do
         run_in "$test_root" "$KICHO" "$command" "$help_option"
         assert_status 0 "$command $help_option outside a project"

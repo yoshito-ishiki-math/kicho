@@ -111,3 +111,13 @@ kicho_require_latexmk() {
         exit 1
     fi
 }
+
+# Keep local package/class support with portable source snapshots.
+kicho_copy_local_styles() {
+    local destination="$1" source
+    for source in ./*.sty ./*.cls ./*.bst; do
+        [[ -f "$source" ]] || continue
+        cp "$source" "$destination/" || return 1
+    done
+    return 0
+}

@@ -12,6 +12,8 @@ Usage:
     kicho submit --arxiv [--output DIRECTORY]
 
 Create a local submission package without uploading it.
+Paragraph IDs, editorial notes, and showkeys are disabled in the release copy.
+A marked standard submission rebuilds its PDF using latexmk. Requires Python 3.9+.
 
 Options:
     --arxiv             Create an arXiv source ZIP and metadata worksheet.
@@ -326,17 +328,6 @@ kicho_submit_validate_metadata() {
     fi
 }
 
-kicho_submit_copy_arxiv_styles() {
-    local destination="$1"
-    local source
-
-    shopt -s nullglob
-    for source in ./*.sty ./*.cls ./*.bst; do
-        cp "$source" "$destination/" || return 1
-    done
-    shopt -u nullglob
-}
-
 kicho_submit_arxiv() {
     local destination="$1"
 
@@ -380,7 +371,7 @@ kicho_submit_arxiv() {
         return 1
     fi
 
-    if ! kicho_submit_copy_arxiv_styles "$source_directory"; then
+    if ! kicho_copy_local_styles "$source_directory"; then
         rm -rf "$temporary_directory"
         kicho_error "could not copy arXiv style files."
         return 1
@@ -407,6 +398,11 @@ kicho_submit_arxiv() {
     fi
 
     if ! kicho_copy_source_dependencies "$source_directory" arxiv; then
+        rm -rf "$temporary_directory"
+        return 1
+    fi
+
+    if ! kicho_paraids_run prepare-release --root "$source_directory" >/dev/null; then
         rm -rf "$temporary_directory"
         return 1
     fi
@@ -491,6 +487,36 @@ kicho_submit_arxiv() {
     printf '    %s/arxiv-metadata.txt\n' "$destination"
 }
 
+kicho_submit_rebuild_pdf() {
+    local source="$1" build_directory
+    if ! command -v latexmk >/dev/null 2>&1; then
+        kicho_error "'latexmk' is required to rebuild a submission with editorial marks."
+        return 1
+    fi
+    build_directory="$(mktemp -d "${TMPDIR:-/tmp}/kicho-release-build.XXXXXX")" || return 1
+    # Compile another copy so build outputs cannot enter the submission package
+    # or overwrite copied source dependencies that happen to live under build/.
+    if ! cp -R "$source/." "$build_directory/"; then
+        rm -rf "$build_directory"
+        return 1
+    fi
+    rm -f -- "$build_directory/build/main.pdf"
+    if ! (cd -- "$build_directory" && kicho_command_build) >"$build_directory/release-build.log" 2>&1; then
+        cat "$build_directory/release-build.log" >&2
+        rm -rf "$build_directory"
+        kicho_error 'could not build the cleaned submission PDF; no package was created.'
+        return 1
+    fi
+    if [[ ! -f "$build_directory/build/main.pdf" ]] ||
+        ! cp "$build_directory/build/main.pdf" "$source/main.pdf"; then
+        rm -rf "$build_directory"
+        kicho_error 'release build did not produce a fresh build/main.pdf.'
+        return 1
+    fi
+    rm -rf "$build_directory"
+    return 0
+}
+
 kicho_submit_standard() {
     local destination="$1"
 
@@ -528,7 +554,23 @@ kicho_submit_standard() {
         return 1
     fi
 
-    if [[ -f "build/main.pdf" ]]; then
+    if ! kicho_copy_local_styles "$temporary_directory"; then
+        rm -rf "$temporary_directory"
+        return 1
+    fi
+
+    local editorial_state
+    if ! editorial_state="$(kicho_paraids_run prepare-release --root "$temporary_directory")"; then
+        rm -rf "$temporary_directory"
+        return 1
+    fi
+
+    if [[ "$editorial_state" == review ]]; then
+        if ! kicho_submit_rebuild_pdf "$temporary_directory"; then
+            rm -rf "$temporary_directory"
+            return 1
+        fi
+    elif [[ -f "build/main.pdf" ]]; then
         if ! cp "build/main.pdf" "$temporary_directory/main.pdf"; then
             rm -rf "$temporary_directory"
             kicho_error "could not copy build/main.pdf."

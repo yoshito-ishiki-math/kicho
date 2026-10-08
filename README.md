@@ -228,3 +228,15 @@ Rather than replacing existing tools, Kicho integrates them into a consistent pr
 ## License
 
 MIT License
+
+## Paragraph IDs and editorial notes
+
+Kicho distributes the paragraph-ID package and helper. Existing manuscripts retain their IDs and local package versions.
+
+```bash
+kicho paraids install --root MyPaper
+kicho paraids new --root MyPaper --count 3
+kicho paraids check --root MyPaper
+```
+
+`submit` and `submit --arxiv` disable IDs and red notes in their release copy; standard submission rebuilds the clean PDF. These operations require Python 3.9 or later. See [usage](docs/paragraphids.md) and [the command specification](SPEC.md#paraids).
