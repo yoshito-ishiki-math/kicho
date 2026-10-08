@@ -165,6 +165,8 @@ First paragraph.
         archive = next((self.root / "archives").glob("*/source"))
         self.assertEqual((archive / "paragraphids.sty").read_bytes(), (self.root / "paragraphids.sty").read_bytes())
         self.assertEqual((archive / "main.tex").read_bytes(), (self.root / "main.tex").read_bytes())
+        self.assertEqual(self.cli("paraids", "check").returncode, 0)
+        self.assertEqual(self.cli("paraids", "check", "--root", str(archive)).returncode, 0)
         result = self.cli("submit", "--arxiv", "--output", "arxiv-export")
         self.assertEqual(result.returncode, 0, result.stderr)
         with zipfile.ZipFile(self.root / "arxiv-export/arxiv-source.zip") as archive:
@@ -178,6 +180,7 @@ First paragraph.
         self.assertEqual((exported / "main.pdf").read_bytes(), b"CLEAN-REBUILT-PDF")
         self.assertFalse((exported / "paragraphids.sty").exists())
         self.assertFalse((exported / "build").exists())
+        self.assertEqual(self.cli("paraids", "check", "--include-comments").returncode, 0)
         for name, value in original.items():
             self.assertEqual(hashlib.sha256((self.root / name).read_bytes()).hexdigest(), value, name)
 

@@ -52,7 +52,7 @@ kicho_command_build() {
 
     printf 'Building project...\n'
 
-    if latexmk; then
+    if latexmk -recorder; then
         printf 'Build completed successfully.\n'
     else
         local status=$?

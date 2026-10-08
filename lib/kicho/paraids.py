@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import re
 import secrets
 import sys
@@ -10,7 +12,8 @@ from pathlib import Path
 
 ID = re.compile(r"p-[0-9a-f]{12}\Z")
 LITERAL = {"verbatim", "verbatim*", "Verbatim", "Verbatim*", "BVerbatim", "LVerbatim", "lstlisting", "minted", "comment"}
-SKIP = {".git", "build", "dist", "output", ".venv", ".uv-cache", "__pycache__"}
+SKIP = {".git", "build", "dist", "output", "archives", "submission", "submissions",
+        ".venv", ".uv-cache", "__pycache__"}
 TOKEN = re.compile(r"\\([A-Za-z@]+|.)", re.S)
 SETTINGS = {"paragraphidfont", "paragraphidwidth", "paragraphnotefont", "paragraphnotewidth"}
 MARKS = {"paraid", "paranote", "ParagraphIDsOn", "ParagraphIDsOff"}
@@ -55,8 +58,33 @@ def visible_source(text: str, include_comments: bool = False) -> str:
     return "".join(chars)
 
 
+def is_kicho_export(directory: Path) -> bool:
+    manifest = directory / "manifest.json"
+    if manifest.is_symlink():
+        return False
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return (isinstance(data, dict) and isinstance(data.get("kicho_version"), str)
+            and isinstance(data.get("project"), str))
+
+
+def manuscript_files(root: Path):
+    if root.is_file():
+        return [root]
+    paths = []
+    for directory, names, files in os.walk(root, followlinks=False):
+        base = Path(directory)
+        names[:] = sorted(name for name in names if name not in SKIP
+                          and not (base / name).is_symlink()
+                          and not is_kicho_export(base / name))
+        paths.extend(base / name for name in sorted(files) if name.endswith(".tex"))
+    return sorted(paths)
+
+
 def occurrences(root: Path, include_comments: bool = False):
-    paths = [root] if root.is_file() else sorted(root.rglob("*.tex"))
+    paths = manuscript_files(root)
     for path in paths:
         relative = path.relative_to(root) if root.is_dir() else Path(path.name)
         if any(part in SKIP for part in relative.parts) or path.is_symlink():

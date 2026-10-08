@@ -37,7 +37,7 @@ kicho_archive_root() {
 kicho_archive_create_directories() {
     local root="$1"
 
-    mkdir -p "${root%/*}"
+    mkdir -p "${root%/*}" || return 1
 
     if ! mkdir "$root"; then
         kicho_error "archive already exists or could not be created: '$root'."
@@ -64,12 +64,12 @@ kicho_archive_copy_if_exists() {
 kicho_archive_copy_source() {
     local destination="$1"
 
-    kicho_archive_copy_if_exists main.tex "$destination"
-    kicho_archive_copy_if_exists sections "$destination"
-    kicho_archive_copy_if_exists preamble "$destination"
-    kicho_archive_copy_if_exists figures "$destination"
-    kicho_archive_copy_if_exists bib "$destination"
-    kicho_archive_copy_if_exists .latexmkrc "$destination"
+    kicho_archive_copy_if_exists main.tex "$destination" || return 1
+    kicho_archive_copy_if_exists sections "$destination" || return 1
+    kicho_archive_copy_if_exists preamble "$destination" || return 1
+    kicho_archive_copy_if_exists figures "$destination" || return 1
+    kicho_archive_copy_if_exists bib "$destination" || return 1
+    kicho_archive_copy_if_exists .latexmkrc "$destination" || return 1
 }
 
 kicho_archive_copy_pdf() {
@@ -91,7 +91,7 @@ kicho_archive_check_source() {
     fi
 }
 
-kicho_command_archive() {
+kicho_command_archive() (
     if [[ $# -ne 0 ]]; then
         kicho_error "archive does not accept arguments."
         printf "Run 'kicho help archive' for usage.\n" >&2
@@ -122,21 +122,55 @@ kicho_command_archive() {
     local archive_root
     archive_root="$(kicho_archive_root "$timestamp")"
 
-    kicho_archive_create_directories "$archive_root"
-    kicho_archive_copy_source "$archive_root/source"
-    kicho_copy_local_styles "$archive_root/source"
-    kicho_copy_source_dependencies "$archive_root/source" archive
-    kicho_archive_check_source "$archive_root/source"
-    kicho_archive_copy_pdf "$archive_root/pdf"
-    kicho_metadata_write_manifest \
-        "$archive_root/metadata/archive.json" \
+    if [[ -L archives ]]; then
+        kicho_error 'archive does not use a symbolic-link archives directory.'
+        return 1
+    fi
+    if [[ -e "$archive_root" || -L "$archive_root" ]]; then
+        kicho_error "archive already exists: '$archive_root'."
+        return 1
+    fi
+    mkdir -p archives || return 1
+    local archive_lock="archives/.$timestamp.lock" staging=''
+    if ! mkdir "$archive_lock"; then
+        kicho_error "archive timestamp is already being created: '$archive_root'."
+        return 1
+    fi
+    trap '[[ -z "$staging" ]] || rm -rf -- "$staging"; rmdir -- "$archive_lock"' EXIT
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    staging="$(mktemp -d 'archives/.kicho-archive.XXXXXX')" || return 1
+    local snapshot="$staging/snapshot"
+    if ! kicho_archive_create_directories "$snapshot" ||
+        ! kicho_archive_copy_source "$snapshot/source" ||
+        ! kicho_copy_local_styles "$snapshot/source" ||
+        ! kicho_copy_source_dependencies "$snapshot/source" archive ||
+        ! kicho_archive_copy_pdf "$snapshot/pdf"; then
+        kicho_error 'could not complete archive; no snapshot was published.'
+        return 1
+    fi
+    kicho_archive_check_source "$snapshot/source"
+    if ! kicho_metadata_write_manifest \
+        "$snapshot/metadata/archive.json" \
         "$created_at" \
         "$project" \
         "$include_git" \
         "$git_branch" \
         "$git_commit" \
-        "$git_dirty"
+        "$git_dirty"; then
+        kicho_error 'could not write archive metadata; no snapshot was published.'
+        return 1
+    fi
+    if [[ -e "$archive_root" || -L "$archive_root" ]]; then
+        kicho_error "archive already exists: '$archive_root'."
+        return 1
+    fi
+    if ! mv "$snapshot" "$archive_root"; then
+        kicho_error "could not publish archive: '$archive_root'."
+        return 1
+    fi
 
     printf 'Created archive:\n'
     printf '    %s\n' "$archive_root"
-}
+)

@@ -4,6 +4,11 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Source file/line diagnostics and `check --json` structured output
+- `submit --build` to refresh PDFs, compiled bibliographies, and recorder files
+- Warnings when known inputs are newer than a copied submission PDF or BBL
 - Manage the paragraphids package and literal IDs with `paraids install/new/find/check`
 - Disable paragraph IDs, red notes, and showkeys in submission sources; rebuild
   marked standard-submission PDFs and omit the editorial package
@@ -16,6 +21,11 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Fixed
 
+- Resolve literal graphicspath lists and report input/include cycles in `check`
+- Preserve nested project-local styles/classes and compiler-recorded inputs
+- Keep generated archive/submission copies out of paragraph-ID directory scans
+- Stage complete archives before publication and clean up after failures and signals
+- Reject dependency copies through symlinks in export destinations
 - Preserve known verbatim and listing environments during flattening and submission
 - Check every literal file reference on a line and retain escaped percent signs
 - Reject symbolic-link flatten output directories and dangling destination links

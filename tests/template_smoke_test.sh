@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -u
+set -eu
 
 TEST_DIR="$(
     cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
@@ -22,8 +22,45 @@ done
 test_root="$(mktemp -d "${TMPDIR:-/tmp}/kicho-template-smoke.XXXXXX")" || exit 1
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
+add_export_fixture() {
+    local project="$1"
+    mkdir -p "$project/styles" "$project/extras"
+    printf '\\ProvidesPackage{styles/export-fixture}\n\\RequirePackage{styles/export-helper}\n' \
+        > "$project/styles/export-fixture.sty"
+    printf '\\ProvidesPackage{styles/export-helper}\n\\newcommand{\\kichoexporttest}{Portable style}\n' \
+        > "$project/styles/export-helper.sty"
+    printf 'Compiler-recorded input.\n' > "$project/extras/fixture.tex"
+    cat >> "$project/preamble/packages.tex" <<'TEX'
+
+\usepackage{styles/export-fixture}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\newcommand{\kichoFixtureInput}{extras/fixture}
+TEX
+    cat >> "$project/sections/introduction.tex" <<'TEX'
+
+\kichoexporttest. \includegraphics[width=2mm]{export-dot}
+Recorder: \input{\kichoFixtureInput}
+TEX
+    python3 - "$project/figures/export-dot.png" <<'PY'
+from pathlib import Path
+import struct
+import sys
+import zlib
+
+def chunk(tag, data):
+    return (struct.pack('>I', len(data)) + tag + data
+            + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff))
+
+Path(sys.argv[1]).write_bytes(b'\x89PNG\r\n\x1a\n'
+    + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0))
+    + chunk(b'IDAT', zlib.compress(b'\x00\xff\xff\xff')) + chunk(b'IEND', b''))
+PY
+}
+
 english_project="$test_root/English Paper"
 "$KICHO" init "$english_project"
+add_export_fixture "$english_project"
 
 perl -0pi -e \
     's/Write the abstract here\./For \$x \\in \\R\$, we have \\(\\abs\{x\} \\geq 0\\\)\.\n\\\[\\norm\{x\} = \\abs\{x\}\.\\\]/' \
@@ -40,8 +77,8 @@ TEX
 
 (
     cd -- "$english_project" &&
-    "$KICHO" build &&
-    "$KICHO" submit
+    "$KICHO" check --json &&
+    "$KICHO" submit --build
 )
 
 if [[ ! -f "$english_project/build/main.pdf" ]]; then
@@ -51,6 +88,7 @@ fi
 
 japanese_project="$test_root/日本語 論文"
 "$KICHO" init --template japanese "$japanese_project"
+add_export_fixture "$japanese_project"
 "$KICHO" paraids install --root "$japanese_project"
 printf '\n\\usepackage{paragraphids}\n' >> "$japanese_project/preamble/packages.tex"
 cat >> "$japanese_project/sections/introduction.tex" <<'TEX'
@@ -62,8 +100,8 @@ TEX
 
 (
     cd -- "$japanese_project" &&
-    "$KICHO" build &&
-    "$KICHO" submit
+    "$KICHO" check --json &&
+    "$KICHO" submit --build
 )
 
 if [[ ! -f "$japanese_project/build/main.pdf" ]]; then
@@ -78,6 +116,20 @@ for project in "$english_project" "$japanese_project"; do
     fi
     if ! grep -F '\paranote{' "$project/sections/introduction.tex" >/dev/null; then
         printf 'Submission changed the working annotations: %s\n' "$project" >&2
+        exit 1
+    fi
+    if [[ ! -f "$project/submission/styles/export-helper.sty" ||
+        ! -f "$project/submission/extras/fixture.tex" ]]; then
+        printf 'Submission omitted a local or recorder dependency: %s\n' "$project" >&2
+        exit 1
+    fi
+    # Compile using only the exported sources, independently of the live tree.
+    if ! (cd -- "$project/submission" && "$KICHO" build); then
+        printf 'Exported sources did not build independently: %s\n' "$project" >&2
+        exit 1
+    fi
+    if ! (cd -- "$project" && "$KICHO" archive && "$KICHO" paraids check); then
+        printf 'Paragraph-ID checks failed after archiving: %s\n' "$project" >&2
         exit 1
     fi
 done

@@ -21,6 +21,8 @@ source "$KICHO_LIB_DIR/metadata.sh"
 # shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/path.sh"
 # shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/dependencies.sh"
+# shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/loader.sh"
 
 kicho_load_commands

@@ -87,17 +87,18 @@ cd MyPaper
 ../bin/kicho check
 ```
 
+診断には参照元のファイル名と行番号を表示します。`../bin/kicho check --json`でJSON形式の出力を得られます。図の検索パスと入力ファイルの循環参照にも対応しています。
+
 ソース、コンパイル済みPDF、プロジェクトのメタデータをスナップショットとして保存します。
 
 ```bash
 ../bin/kicho archive
 ```
 
-arXivへのアップロード用ZIPを作成します。先にビルドして、`build/main.bbl`を最新にしておきます。
+arXivへのアップロード用ZIPを作成します。`--build`でPDF・文献出力・依存ファイルの記録を更新してからパッケージ化します。
 
 ```bash
-../bin/kicho build
-../bin/kicho submit --arxiv
+../bin/kicho submit --arxiv --build
 ```
 
 文献を使用する原稿では、アップロード用ZIPに`.bib`ファイルを含めず、`main.bbl`を含めます。
@@ -107,7 +108,7 @@ Kicho自身はアップロードを行いません。
 以前のパッケージを残す場合や改訂版を準備する場合は、プロジェクト内の別の出力先を指定します。
 
 ```bash
-../bin/kicho submit --arxiv --output submissions/revision-2
+../bin/kicho submit --arxiv --build --output submissions/revision-2
 ```
 
 出力先のディレクトリがすでに存在する場合、Kichoは処理を拒否します。強制的に上書きするオプションはありません。
@@ -221,4 +222,4 @@ kicho paraids new --root MyPaper --count 3
 kicho paraids check --root MyPaper
 ```
 
-`submit` と `submit --arxiv` は提出用コピーのID・赤字注記を無効化します。通常の提出では注記を除いたPDFを再ビルドします。Python 3.9以上が必要です。[利用方法](docs/paragraphids.md)を参照してください。
+`submit` と `submit --arxiv` は提出用コピーのID・赤字注記を無効化します。ID・注記を含む通常の提出では、注記を除いたPDFを再ビルドします。`submit --build`で、どちらの提出形式でも作業版の生成物を更新できます。Python 3.9以上が必要です。[利用方法](docs/paragraphids.md)を参照してください。

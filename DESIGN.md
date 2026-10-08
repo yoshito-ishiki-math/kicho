@@ -892,3 +892,25 @@ and submission packages copy these dependencies with their project-relative
 paths; arXiv omits bibliography databases. Scans mask inline verbatim examples
 and skip known literal blocks. This remains a literal-reference scanner, not a
 TeX interpreter; dynamic references are reported for manual review.
+
+### Diagnostics and portable exports
+
+The static checker retains source file/line context through recursive calls,
+uses an active input stack independently of the visited-file set, and shares
+its literal graphicspath and local-style resolution with export collection.
+Human and JSON output use the same error/warning records. JSON escaping reuses
+metadata.sh, retaining Bash 3.2 and avoiding another runtime dependency.
+
+Recorder dependency collection reads INPUT/PWD records from build/main.fls
+using compiler output rather than expanding arbitrary TeX macros. Only
+project-local, regular source dependencies are copied with their relative
+paths. Generated auxiliaries and files outside the root are omitted.
+Submission --build explicitly refreshes compiler output before collection;
+ordinary PDF/BBL copies warn when known inputs are newer.
+
+Archive publication uses a unique staging directory and timestamp lock under
+archives/. A subshell owns cleanup traps for success, failure, and signals;
+completed snapshots are never used as staging.
+
+Paragraph-ID directory traversal prunes generated Kicho export directories
+without preventing an explicitly selected stored edition from being inspected.

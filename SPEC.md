@@ -53,8 +53,11 @@ automatically, and `init` does not insert paragraph tags.
 
 `new`, `find`, and `check` retain the existing helper's literal UTF-8 scanning
 and do not edit sources. `new` reserves commented IDs. `find` and `check` accept
-`--include-comments`; scope checks to the active manuscript, excluding separate
-versions. IDs use `p-` followed by twelve random lowercase hexadecimal digits.
+`--include-comments`. Directory scans exclude archives, submission/submissions,
+build outputs, and Kicho export directories identified by their manifest. An
+explicit file or export root can still be searched. Scope other historical
+versions explicitly. IDs use `p-` followed by twelve random lowercase
+hexadecimal digits.
 The package retains the independent show/hide switch, physical-left placement,
 and red `\paranote` annotations. See [paragraph-ID usage](docs/paragraphids.md).
 
@@ -74,8 +77,10 @@ Standard submission rebuilds its PDF from the cleaned copy when editorial
 material is present, including commented markers, instead of copying a possibly
 annotated working PDF. It requires a successful `latexmk` build and a fresh
 `build/main.pdf`. Build intermediates are removed from the package. Untagged
-standard submissions retain their existing PDF-copy behavior. arXiv submission
-remains a source-only export. Neither mode edits the working manuscript or
+standard submissions retain their existing PDF-copy behavior, with a warning
+when known source dependencies are newer than the copied output. `submit --build`
+first runs the project build for a current PDF, bibliography, and dependency
+record. arXiv submission remains a source-only export. Neither mode edits the working manuscript or
 uploads anything. `archive` retains the local package and active review marks.
 
 ---
@@ -318,15 +323,18 @@ current project.
 
 ```bash
 kicho check
+kicho check --json
 ```
 
-The MVP checks:
+The static checker validates:
 
 - `main.tex`
 - `.latexmkrc`
 - literal `\input{...}` and `\include{...}` references, recursively
 - literal `\addbibresource{...}` and `\bibliography{...}` references
-- literal `\includegraphics{...}` references
+- literal `\includegraphics{...}` references and literal `\graphicspath` lists
+- input/include cycles, while allowing repeated non-cyclic input
+- project-local package, class, and bibliography-style references
 - the conventional `bib/` and `figures/` directories
 
 Paths generated through TeX macros cannot be resolved safely by the MVP and
@@ -334,7 +342,15 @@ produce warnings. References that resolve outside the project, reference a
 symbolic link, or name a missing file are errors. All matching references on
 each line are checked. Escaped percent signs
 (`\%`) are retained; only unescaped percent signs start comments. The check
-is static and does not replace a real LaTeX build.
+is static and does not replace a real LaTeX build. Diagnostics for source
+references include the project-relative filename and a one-based line number.
+Literal graphicspath lists may span lines; macro-generated search paths produce
+a warning instead of a false missing-figure error.
+
+`--json` writes only a JSON object to stdout, with `schema_version: 1`, numeric
+`errors` and `warnings`, and a `diagnostics` array. Each diagnostic has `severity`
+(`error` or `warning`), `message`, `file`, and `line`; project-wide diagnostics
+have null file/line. It retains the usual exit status and requires no extra tool.
 
 Missing optional conventional directories produce warnings. Missing required
 project files or referenced files produce errors.
@@ -588,7 +604,10 @@ records the branch (or `HEAD` when detached), commit, and dirty state. Kicho
 only reads Git information and does not modify the repository.
 
 Archive paths are never reused. The command fails if the timestamped destination
-already exists.
+already exists. Creation is staged under the archive directory and published
+only after all copies and metadata writes succeed. Failure or a handled
+HUP/INT/TERM signal removes only staging files and the lock created by that invocation; an existing
+snapshot is never changed. A symbolic-link archive directory is rejected.
 
 ---
 
@@ -649,8 +668,8 @@ The same protection applies to both submission modes.
 Create a local submission package without uploading it anywhere.
 
 ```text
-kicho submit [--output DIRECTORY]
-kicho submit --arxiv [--output DIRECTORY]
+kicho submit [--build] [--output DIRECTORY]
+kicho submit --arxiv [--build] [--output DIRECTORY]
 ```
 
 ```text
@@ -672,6 +691,12 @@ parent (`..`) components, and paths that resolve outside the project through a
 symbolic link are rejected. Kicho creates missing parent directories but never
 overwrites the selected destination.
 
+`--build` runs `kicho build` before collecting the package and stops if the
+build fails. It refreshes the working PDF, BBL, and recorder file without
+editing the manuscript. Without this option, known source or configuration
+files newer than an existing PDF/BBL cause a warning recommending `--build`.
+Timestamp checks cannot certify freshness for arbitrary TeX macros.
+
 ### arXiv submission package
 
 `kicho submit --arxiv` creates an arXiv upload archive and a separate metadata
@@ -685,8 +710,8 @@ submission/
 ```
 
 The ZIP contains flattened `main.tex`, `build/main.bbl` renamed to `main.bbl`,
-the `figures/` directory, and top-level `.sty`, `.cls`, and `.bst` files. It
-does not contain `.bib` files, the built PDF, `.latexmkrc`, the manifest, the
+the `figures/` directory, and project-local style/class dependencies, including
+those in subdirectories. It does not contain `.bib` files, the built PDF, `.latexmkrc`, the manifest, the
 metadata worksheet, or hidden files. If the document uses a bibliography and
 `build/main.bbl` is missing, the command fails and asks the user to build first.
 
@@ -719,7 +744,12 @@ Kicho-specific configuration should be introduced only when it provides function
 ### Dependency preservation and literal examples
 
 Archives additionally copy statically resolved project-local input, bibliography,
-and figure dependencies, preserving relative paths (including `parts/`).
+figure, package, class, and bibliography-style dependencies, preserving relative
+paths (including `parts/` and `styles/`). Local styles are scanned recursively.
+A matching project-root `build/main.fls` additionally supplies compiler-recorded
+project-local dependencies, excluding generated auxiliary files. External TeX
+installation files are not copied. `kicho build` explicitly enables the recorder.
+Stale recorder files for another project root are ignored with a warning.
 Submission packages also retain referenced input and figure files, so inline
 input commands that flatten does not expand remain usable. arXiv packages still
 exclude bibliography databases and require the compiled bibliography for active

@@ -8,14 +8,15 @@ kicho_command_submit_summary() {
 kicho_command_submit_usage() {
     cat <<'USAGE'
 Usage:
-    kicho submit [--output DIRECTORY]
-    kicho submit --arxiv [--output DIRECTORY]
+    kicho submit [--build] [--output DIRECTORY]
+    kicho submit --arxiv [--build] [--output DIRECTORY]
 
 Create a local submission package without uploading it.
 Paragraph IDs, editorial notes, and showkeys are disabled in the release copy.
 A marked standard submission rebuilds its PDF using latexmk. Requires Python 3.9+.
 
 Options:
+    --build             Refresh the project PDF, BBL, and recorded dependencies.
     --arxiv             Create an arXiv source ZIP and metadata worksheet.
     -o, --output DIR    Write the package to DIR instead of submission/.
 USAGE
@@ -358,6 +359,10 @@ kicho_submit_arxiv() {
 
     local source_directory="$temporary_directory/source"
     local package_directory="$temporary_directory/package"
+    if ! kicho_submit_warn_stale_output build/main.bbl; then
+        rm -rf "$temporary_directory"
+        return 1
+    fi
     mkdir -p "$source_directory" "$package_directory"
 
     if ! kicho_flatten_write "$source_directory/main.tex"; then
@@ -571,6 +576,10 @@ kicho_submit_standard() {
             return 1
         fi
     elif [[ -f "build/main.pdf" ]]; then
+        if ! kicho_submit_warn_stale_output build/main.pdf; then
+            rm -rf "$temporary_directory"
+            return 1
+        fi
         if ! cp "build/main.pdf" "$temporary_directory/main.pdf"; then
             rm -rf "$temporary_directory"
             kicho_error "could not copy build/main.pdf."
@@ -607,9 +616,18 @@ kicho_command_submit() {
     local arxiv="false"
     local destination="submission"
     local output_seen="false"
+    local build="false"
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --build)
+                if [[ "$build" == true ]]; then
+                    kicho_error "submit option '--build' was specified more than once."
+                    return 1
+                fi
+                build=true
+                shift
+                ;;
             --arxiv)
                 if [[ "$arxiv" == "true" ]]; then
                     kicho_error "submit option '--arxiv' was specified more than once."
@@ -654,6 +672,12 @@ kicho_command_submit() {
 
     if ! destination="$(kicho_submit_normalize_destination "$destination")"; then
         return 1
+    fi
+
+    if [[ "$build" == true ]]; then
+        kicho_submit_check_destination "$destination" || return 1
+        kicho_require_latexmk
+        kicho_command_build || return 1
     fi
 
     if [[ "$arxiv" == "true" ]]; then

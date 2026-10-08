@@ -45,9 +45,11 @@ for test_file in \
     fi
 done
 
-if ! python3 "$TEST_DIR/paraids_test.py"; then
-    status=1
-fi
+for test_file in "$TEST_DIR/paraids_test.py" "$TEST_DIR/export_test.py"; do
+    if ! python3 "$test_file"; then
+        status=1
+    fi
+done
 
 if ((status != 0)); then
     printf 'Test suite failed.\n' >&2

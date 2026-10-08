@@ -89,10 +89,10 @@ then to the stable `v0.2.0` release.
 
 ### Diagnostics
 
-- [ ] Support multiple literal references on one TeX source line
-- [ ] Recognize `\graphicspath`
-- [ ] Report include cycles in `check`
-- [ ] Add an optional machine-readable `check` format
+- [x] Support multiple literal references on one TeX source line
+- [x] Recognize `\graphicspath`
+- [x] Report include cycles in `check`
+- [x] Add an optional machine-readable `check` format
 - [ ] Add missing citation and reference diagnostics only if a reliable existing
       TeX tool can provide them
 
@@ -105,8 +105,12 @@ then to the stable `v0.2.0` release.
 
 ### Archiving and Submission
 
+- [x] Preserve nested local styles and compiler-recorded project dependencies
+- [x] Stage archives and clean up on copy/write failures and handled signals
+- [x] Exclude generated snapshots and submission copies from paragraph-ID scans
+
 - [ ] Add an optional compressed archive format
-- [ ] Decide whether `submit` should build before packaging
+- [x] Add explicit `submit --build` and stale-output warnings
 - [x] Add an arXiv source ZIP and reusable metadata worksheet
 - [ ] Add submission profiles only after concrete journal requirements are known
 

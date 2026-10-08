@@ -116,6 +116,10 @@ kicho_require_latexmk() {
 kicho_copy_local_styles() {
     local destination="$1" source
     for source in ./*.sty ./*.cls ./*.bst; do
+        if [[ -L "$source" ]]; then
+            kicho_error "local style is a symbolic link: '$source'."
+            return 1
+        fi
         [[ -f "$source" ]] || continue
         cp "$source" "$destination/" || return 1
     done

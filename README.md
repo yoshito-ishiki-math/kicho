@@ -91,17 +91,18 @@ Diagnose the installed toolchain, then validate the project without building.
 ../bin/kicho check
 ```
 
+Diagnostics include source filenames and line numbers. Use `../bin/kicho check --json` for structured output. Literal graphic paths and input cycles are checked.
+
 Create a snapshot of the source, compiled PDF, and project metadata.
 
 ```bash
 ../bin/kicho archive
 ```
 
-Prepare an arXiv upload ZIP. Build first so `build/main.bbl` is current.
+Prepare an arXiv upload ZIP. `--build` refreshes the PDF, bibliography, and dependency record before packaging.
 
 ```bash
-../bin/kicho build
-../bin/kicho submit --arxiv
+../bin/kicho submit --arxiv --build
 ```
 
 The command keeps `.bib` files out of the upload ZIP and includes `main.bbl`.
@@ -112,7 +113,7 @@ Choose a different project-local output directory when keeping an earlier
 package or preparing a revision:
 
 ```bash
-../bin/kicho submit --arxiv --output submissions/revision-2
+../bin/kicho submit --arxiv --build --output submissions/revision-2
 ```
 
 Kicho refuses existing output directories and does not provide a destructive
@@ -239,4 +240,4 @@ kicho paraids new --root MyPaper --count 3
 kicho paraids check --root MyPaper
 ```
 
-`submit` and `submit --arxiv` disable IDs and red notes in their release copy; standard submission rebuilds the clean PDF. These operations require Python 3.9 or later. See [usage](docs/paragraphids.md) and [the command specification](SPEC.md#paraids).
+`submit` and `submit --arxiv` disable IDs and red notes in their release copy; standard submission with review marks rebuilds the clean PDF. `submit --build` refreshes working outputs for either submission mode. These operations require Python 3.9 or later. See [usage](docs/paragraphids.md) and [the command specification](SPEC.md#paraids).
