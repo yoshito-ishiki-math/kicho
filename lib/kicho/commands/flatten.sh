@@ -153,8 +153,8 @@ kicho_flatten_file() {
 kicho_flatten_write() {
     local destination="$1"
 
-    if [[ ! -f "main.tex" ]]; then
-        kicho_error "main.tex was not found."
+    if [[ ! -f "$KICHO_MAIN" ]]; then
+        kicho_error "$KICHO_MAIN was not found."
         return 1
     fi
 
@@ -162,9 +162,9 @@ kicho_flatten_write() {
     project_root="$(pwd -P)"
 
     if ! kicho_flatten_file \
-        "$project_root/main.tex" \
+        "$project_root/$KICHO_MAIN" \
         "$project_root" \
-        "|$project_root/main.tex|" > "$destination"; then
+        "|$project_root/$KICHO_MAIN|" > "$destination"; then
         rm -f "$destination"
         return 1
     fi

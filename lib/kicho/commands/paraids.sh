@@ -25,10 +25,7 @@ kicho_command_paraids_accepts_arguments() {
 }
 
 kicho_paraids_run() {
-    if ! command -v python3 >/dev/null 2>&1; then
-        kicho_error "'python3' is required for paragraph-ID and submission operations."
-        return 1
-    fi
+    kicho_require_python || return 1
     python3 "$KICHO_LIB_DIR/paraids.py" "$@"
 }
 

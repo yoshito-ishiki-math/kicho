@@ -10,7 +10,7 @@ kicho_command_archive_usage() {
 Usage:
     kicho archive
 
-Create an archive snapshot of the current project.
+Create an archive snapshot of the current project. Requires Python 3.9+.
 USAGE
 }
 
@@ -50,35 +50,31 @@ kicho_archive_create_directories() {
         "$root/metadata"
 }
 
-kicho_archive_copy_if_exists() {
-    local source="$1"
-    local destination="$2"
-
-    if [[ -e "$source" ]]; then
-        cp -R "$source" "$destination"
-    else
-        printf 'Warning: %s not found.\n' "$source" >&2
-    fi
-}
-
 kicho_archive_copy_source() {
     local destination="$1"
 
-    kicho_archive_copy_if_exists main.tex "$destination" || return 1
-    kicho_archive_copy_if_exists sections "$destination" || return 1
-    kicho_archive_copy_if_exists preamble "$destination" || return 1
-    kicho_archive_copy_if_exists figures "$destination" || return 1
-    kicho_archive_copy_if_exists bib "$destination" || return 1
-    kicho_archive_copy_if_exists .latexmkrc "$destination" || return 1
+    if [[ -f "$KICHO_MAIN" ]]; then
+        kicho_prepare_dependency_destination "$destination" "$KICHO_MAIN" || return 1
+        cp "$KICHO_MAIN" "$destination/$KICHO_MAIN" || return 1
+    else
+        printf 'Warning: %s not found.\n' "$KICHO_MAIN" >&2
+    fi
+    kicho_copy_if_exists sections "$destination" || return 1
+    kicho_copy_if_exists preamble "$destination" || return 1
+    kicho_copy_if_exists figures "$destination" || return 1
+    kicho_copy_if_exists bib "$destination" || return 1
+    kicho_copy_if_exists .latexmkrc "$destination" || return 1
+    kicho_project_write_config "$destination" "$KICHO_MAIN" "$KICHO_BUILD_DIR" || return 1
 }
 
 kicho_archive_copy_pdf() {
-    local destination="$1"
+    local destination="$1" pdf
+    pdf="$(kicho_project_output pdf)"
 
-    if [[ -f "build/main.pdf" ]]; then
-        cp "build/main.pdf" "$destination/main.pdf"
+    if [[ -f "$pdf" ]]; then
+        cp "$pdf" "$destination/main.pdf"
     else
-        printf 'Warning: build/main.pdf not found.\n' >&2
+        printf 'Warning: %s not found.\n' "$pdf" >&2
     fi
 }
 
@@ -97,6 +93,8 @@ kicho_command_archive() (
         printf "Run 'kicho help archive' for usage.\n" >&2
         return 1
     fi
+
+    kicho_require_python || return 1
 
     local timestamp
     timestamp="$(kicho_archive_timestamp)"
@@ -160,6 +158,9 @@ kicho_command_archive() (
         "$git_commit" \
         "$git_dirty"; then
         kicho_error 'could not write archive metadata; no snapshot was published.'
+        return 1
+    fi
+    if ! kicho_metadata_add_provenance "$snapshot/metadata/archive.json" "$snapshot"; then
         return 1
     fi
     if [[ -e "$archive_root" || -L "$archive_root" ]]; then

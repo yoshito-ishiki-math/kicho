@@ -175,6 +175,10 @@ kicho_command_doctor() {
     printf '\nLuaTeX cache\n'
 
     local cache_directory
+    if [[ -f .latexmkrc ]] && ! kicho_project_load; then
+        kicho_doctor_fail 'Project path configuration is invalid.'
+        ((failures += 1))
+    fi
     if [[ -n "${TEXMFVAR:-}" ]]; then
         if cache_directory="$(kicho_doctor_cache_directory "$TEXMFVAR")" &&
             kicho_doctor_directory_is_writable "$cache_directory"; then
@@ -185,7 +189,7 @@ kicho_command_doctor() {
             ((warnings += 1))
         fi
     elif [[ -f ".latexmkrc" ]]; then
-        cache_directory="$PWD/build/texmf-var"
+        cache_directory="$PWD/$KICHO_BUILD_DIR/texmf-var"
         if kicho_doctor_directory_is_writable "$cache_directory"; then
             kicho_doctor_ok "Project LuaTeX cache is writable: $cache_directory"
         else
@@ -194,6 +198,20 @@ kicho_command_doctor() {
         fi
     else
         kicho_doctor_ok 'Kicho will select a project-local LuaTeX cache during build.'
+    fi
+
+    printf '\nOptional workflow capabilities\n'
+    if kicho_python_available; then
+        kicho_doctor_ok "Python 3.9+: $(command -v python3) (paragraph IDs, archives, submissions)"
+    else
+        kicho_doctor_warn 'Python 3.9+ is unavailable; paragraph IDs, archives, and submissions require it.'
+        ((warnings += 1))
+    fi
+    if command -v zip >/dev/null 2>&1; then
+        kicho_doctor_ok "zip: $(command -v zip) (arXiv packaging)"
+    else
+        kicho_doctor_warn 'zip was not found; arXiv packaging requires it.'
+        ((warnings += 1))
     fi
 
     printf '\nOptional environment\n'

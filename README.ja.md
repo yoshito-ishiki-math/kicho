@@ -208,6 +208,21 @@ Kichoは、LaTeXテンプレートの提供にとどまらず、`latexmk`、LuaL
 
 ---
 
+## 原稿名とビルド先の設定
+
+原稿名とビルド先は、プロジェクト直下の `kicho.conf` で指定できます。
+
+```text
+main = paper.tex
+build_dir = output
+```
+
+グローバルオプション `--main`・`--build-dir` は、環境変数と設定ファイルより
+優先されます。`kicho check --log --json` は TeX ログの未定義引用・参照も報告し、
+`kicho build --strict` はそれらが残る場合に失敗します。保存物の manifest には
+ファイルの SHA-256 と TeX 関連ツールのバージョンも記録します。
+設定の優先順位・制約・記録形式は [SPEC.md](SPEC.md) にまとめています。
+
 ## ライセンス
 
 MIT License

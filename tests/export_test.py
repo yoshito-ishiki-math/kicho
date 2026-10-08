@@ -1,4 +1,5 @@
 """Regression cases for diagnostics, portable exports, and failed snapshots."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -47,6 +48,187 @@ printf FRESH-PDF > build/main.pdf
 printf FRESH-BBL > build/main.bbl
 printf 'PWD %s\\nINPUT main.tex\\n' "$PWD" > build/main.fls
 """ + f"exit {status}\n")
+
+    def test_hidden_dependencies_are_kept_but_unreferenced_hidden_figures_are_not(self):
+        self.write("main.tex", "Before \\input{.parts/body} after.\n"
+                   "\\includegraphics{figures/.required.pdf}\n")
+        self.write(".parts/body.tex", "Needed hidden source.\n")
+        self.write("figures/.required.pdf", "Needed hidden figure.")
+        self.write("figures/.private/token", "Not a dependency.")
+        result = self.cli("submit", "--arxiv")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with zipfile.ZipFile(self.root / "submission/arxiv-source.zip") as archive:
+            self.assertEqual(archive.read(".parts/body.tex"), b"Needed hidden source.\n")
+            self.assertEqual(archive.read("figures/.required.pdf"), b"Needed hidden figure.")
+            self.assertNotIn("figures/.private/token", archive.namelist())
+            self.assertIn(r"\input{.parts/body}", archive.read("main.tex").decode())
+
+    def test_commands_are_checked_in_order_and_repeated_inputs_use_current_paths(self):
+        self.write("first/one.pdf", "FIRST")
+        self.write("second/two.pdf", "SECOND")
+        self.write("main.tex", r"\graphicspath{{first/}}\includegraphics{one}"
+                   r"\graphicspath{{second/}}\includegraphics{two}" + "\n")
+        result = self.cli("check", "--json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)["errors"], 0)
+        self.write("main.tex", r"\graphicspath{{first/}}\graphicspath{{second/}}"
+                   r"\includegraphics{two}" + "\n")
+        self.assertEqual(self.cli("check").returncode, 0)
+        self.write("first/plot.pdf", "ONE")
+        self.write("second/plot.pdf", "TWO")
+        self.write("parts/repeated.tex", r"\includegraphics{plot}" + "\n")
+        self.write("main.tex", r"\graphicspath{{first/}}\input{parts/repeated}"
+                   r"\graphicspath{{second/}}\input{parts/repeated}" + "\n")
+        result = self.cli("submit")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / "submission/first/plot.pdf").read_text(), "ONE")
+        self.assertEqual((self.root / "submission/second/plot.pdf").read_text(), "TWO")
+
+    def test_log_diagnostics_preserve_static_errors_and_locations(self):
+        self.write("main.tex", "\\input{missing}\n")
+        self.write("build/main.log", "LaTeX Warning: Citation `unknown' on page 1 undefined on input line 5.\n\n"
+                   "LaTeX Warning: Reference `thm' on page 1\nundefined on input line 8.\n\n"
+                   "LaTeX Warning: There were undefined references.\n\n")
+        result = self.cli("check", "--log", "--json")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual((data["errors"], data["warnings"]), (1, 2))
+        self.assertEqual(data["diagnostics"][0]["file"], "main.tex")
+        self.assertEqual(data["diagnostics"][1]["file"], "build/main.log")
+        self.assertEqual(data["diagnostics"][1]["line"], 1)
+        self.assertIn("undefined", data["diagnostics"][2]["message"])
+        os.utime(self.root / "build/main.log", (1000, 1000))
+        result = self.cli("check", "--json", "--log")
+        self.assertIn("stale", result.stdout)
+        (self.root / "build/main.log").unlink()
+        self.assertIn("unavailable", self.cli("check", "--log", "--json").stdout)
+
+    def test_strict_build_fails_only_for_unresolved_or_unavailable_logs(self):
+        script = r'''if [[ "$1" == -v ]]; then printf 'Fake latexmk 1\n'; exit 0; fi
+mkdir -p build
+printf '%s\n\n' "LaTeX Warning: Citation 'missing' undefined on input line 1." > build/main.log
+'''
+        env = self.fake("latexmk", script)
+        self.assertEqual(self.cli("build", env=env).returncode, 0)
+        result = self.cli("build", "--strict", env=env)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Citation", result.stdout)
+        self.assertIn("strict build", result.stderr)
+        env = self.fake("latexmk", "mkdir -p build\nprintf 'Output written.\\n' > build/main.log\n")
+        self.assertEqual(self.cli("build", "--strict", env=env).returncode, 0)
+        (self.root / "build/main.log").unlink()
+        env = self.fake("latexmk", "exit 0\n")
+        self.assertEqual(self.cli("build", "--strict", env=env).returncode, 1)
+
+    def test_project_paths_precedence_and_exports_use_custom_outputs(self):
+        self.write("kicho.conf", "# Literal configuration\nmain = 原稿 paper.tex\nbuild_dir = output files\n")
+        self.write("原稿 paper.tex", "Configured document.\n")
+        self.write("output files/原稿 paper.pdf", "CUSTOM PDF")
+        self.write("output files/原稿 paper.bbl", "CUSTOM BBL")
+        self.write("data/extra.dat", "RECORDED")
+        self.write("output files/原稿 paper.fls", f"PWD {self.root}\nINPUT data/extra.dat\n")
+        result = self.cli("check", "--json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.cli("flatten").returncode, 0)
+        self.assertIn("Configured", (self.root / "dist/main.tex").read_text())
+        result = self.cli("submit")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / "submission/main.pdf").read_text(), "CUSTOM PDF")
+        self.assertEqual((self.root / "submission/data/extra.dat").read_text(), "RECORDED")
+        self.assertEqual((self.root / "submission/kicho.conf").read_text(), "main = main.tex\nbuild_dir = build\n")
+        result = self.cli("submit", "--arxiv", "--output", "arxiv-custom")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with zipfile.ZipFile(self.root / "arxiv-custom/arxiv-source.zip") as archive:
+            self.assertEqual(archive.read("main.bbl"), b"CUSTOM BBL")
+        result = self.cli("archive")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        snapshot = next(path for path in (self.root / "archives").iterdir() if not path.name.startswith('.'))
+        self.assertEqual((snapshot / "source/原稿 paper.tex").read_text(), "Configured document.\n")
+        self.assertEqual((snapshot / "pdf/main.pdf").read_text(), "CUSTOM PDF")
+        env = dict(os.environ, KICHO_MAIN="missing.tex")
+        self.assertEqual(self.cli("check", "--json", env=env).returncode, 1)
+        result = self.cli("--main", "原稿 paper.tex", "check", "--json", env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        env = self.fake("latexmk", 'printf "%s\\n" "$@" > called-args\nexit 0\n')
+        result = self.cli("--build-dir", "different output", "build", env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = (self.root / "called-args").read_text().splitlines()
+        self.assertIn("-outdir=different output", arguments)
+        self.assertIn("-auxdir=different output", arguments)
+        self.assertEqual(arguments[-1], "原稿 paper.tex")
+        env = dict(os.environ, KICHO_MAIN="main.tex")
+        result = self.cli("check", "--json", env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_invalid_paths_are_rejected_and_clean_preserves_authored_sources(self):
+        for text in ("main = ../outside.tex\n", "build_dir = .\n", "build_dir = ././\n",
+                     "build_dir = /tmp/out\n", "build_dir = archives/x\n",
+                     "main = build/paper.tex\n", "other = value\n",
+                     "main = main.tex\nmain = other.tex\n", "main =\n"):
+            self.write("kicho.conf", text)
+            self.assertNotEqual(self.cli("check").returncode, 0, text)
+        (self.root / "kicho.conf").unlink()
+        (self.root / "linked").symlink_to(Path(self.temp.name), target_is_directory=True)
+        self.assertNotEqual(self.cli("--build-dir", "linked/out", "build").returncode, 0)
+        self.write("build/authored.tex", "PRESERVE")
+        result = self.cli("clean", env=self.fake("latexmk", "exit 0\n"))
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual((self.root / "build/authored.tex").read_text(), "PRESERVE")
+        self.assertIn("contains source files", result.stderr)
+
+    def test_manifest_hashes_cover_final_files_and_do_not_touch_the_live_pdf(self):
+        self.write("build/main.pdf", "ORIGINAL PDF")
+        before = (self.root / "build/main.pdf").read_bytes()
+        result = self.cli("submit")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        package = self.root / "submission"
+        data = json.loads((package / "manifest.json").read_text())
+        self.assertEqual(data["schema_version"], 2)
+        self.assertIn("latexmk", data["tools"])
+        self.assertNotIn("manifest.json", data["files"])
+        for name, digest in data["files"].items():
+            self.assertEqual(hashlib.sha256((package / name).read_bytes()).hexdigest(), digest)
+        self.assertEqual((self.root / "build/main.pdf").read_bytes(), before)
+        result = self.cli("submit", "--arxiv", "--output", "hashed-arxiv")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        package = self.root / "hashed-arxiv"
+        data = json.loads((package / "manifest.json").read_text())
+        with zipfile.ZipFile(package / "arxiv-source.zip") as archive:
+            expected = {name for name in archive.namelist() if not name.endswith('/')}
+            self.assertEqual(set(data["source_files"]), expected)
+            for name, digest in data["source_files"].items():
+                self.assertEqual(hashlib.sha256(archive.read(name)).hexdigest(), digest)
+        result = self.cli("archive")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        snapshot = next(path for path in (self.root / "archives").iterdir() if not path.name.startswith('.'))
+        data = json.loads((snapshot / "metadata/archive.json").read_text())
+        self.assertIn("source/main.tex", data["files"])
+        self.assertIn("pdf/main.pdf", data["files"])
+        for name, digest in data["files"].items():
+            self.assertEqual(hashlib.sha256((snapshot / name).read_bytes()).hexdigest(), digest)
+
+    def test_missing_python_stops_before_build_or_export_writes(self):
+        env = self.fake("python3", "exit 1\n")
+        for args in (("archive",), ("submit", "--build"), ("submit", "--arxiv")):
+            result = self.cli(*args, env=env)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("Python 3.9", result.stderr)
+            self.assertFalse((self.root / "archives").exists())
+            self.assertFalse((self.root / "submission").exists())
+            self.assertFalse((self.root / "build/main.pdf").exists())
+
+    def test_submission_interrupt_cleans_owned_temporary_files(self):
+        temp = Path(self.temp.name) / "staging"
+        temp.mkdir()
+        env = self.fake("cp", 'kill -TERM "$PPID"\nexit 1\n')
+        env['TMPDIR'] = str(temp)
+        result = self.cli("submit", env=env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.root / "submission").exists())
+        self.assertFalse(any(path.name.startswith("kicho-") for path in temp.iterdir()))
+        result = self.cli("submit", "--arxiv", env=env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any(path.name.startswith("kicho-") for path in temp.iterdir()))
 
     def assert_no_archive(self):
         archives = self.root / "archives"

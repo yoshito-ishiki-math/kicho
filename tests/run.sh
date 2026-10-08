@@ -26,13 +26,15 @@ elif ! shellcheck -x -P "$TEST_DIR" \
     status=1
 fi
 
-if ! "$KICHO_TEST_BASH" -n \
+for source_file in \
     "$KICHO_ROOT/bin/kicho" \
     "$KICHO_ROOT/lib/kicho/"*.sh \
     "$KICHO_ROOT/lib/kicho/commands/"*.sh \
-    "$TEST_DIR/"*.sh; then
-    status=1
-fi
+    "$TEST_DIR/"*.sh; do
+    if ! "$KICHO_TEST_BASH" -n "$source_file"; then
+        status=1
+    fi
+done
 
 for test_file in \
     "$TEST_DIR/cli_test.sh" \

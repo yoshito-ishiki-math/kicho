@@ -21,9 +21,18 @@ source "$KICHO_LIB_DIR/metadata.sh"
 # shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/path.sh"
 # shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/project.sh"
+# shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/source.sh"
+# shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/diagnostics.sh"
+# shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/dependencies.sh"
+# shellcheck source=/dev/null
+source "$KICHO_LIB_DIR/arxiv.sh"
 # shellcheck source=/dev/null
 source "$KICHO_LIB_DIR/loader.sh"
 
 kicho_load_commands
-kicho_dispatch "$@"
+kicho_project_options "$@"
+kicho_dispatch "${KICHO_ARGUMENTS[@]}"

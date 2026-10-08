@@ -30,8 +30,16 @@ kicho_command_clean() {
 
     printf 'Cleaning project...\n'
 
-    if latexmk -C; then
-        rm -rf build
+    local authored
+    if [[ -d "$KICHO_BUILD_DIR" ]]; then
+        authored="$(find "$KICHO_BUILD_DIR" -type f \( -name '*.tex' -o -name '*.bib' -o -name '*.sty' -o -name '*.cls' -o -name '*.bst' \) -print -quit)"
+        if [[ -n "$authored" ]]; then
+            kicho_error "build directory contains source files; clean refused: '$authored'."
+            return 1
+        fi
+    fi
+    if latexmk -C "-outdir=$KICHO_BUILD_DIR" "-auxdir=$KICHO_BUILD_DIR" "$KICHO_MAIN"; then
+        rm -rf -- "$KICHO_BUILD_DIR"
         printf 'Clean completed successfully.\n'
     else
         local status=$?

@@ -79,7 +79,7 @@ kicho_show_help() {
 Kicho — Workflow manager for LaTeX research projects.
 
 Usage:
-    kicho COMMAND [ARGS]
+    kicho [--main FILE] [--build-dir DIR] COMMAND [ARGS]
     kicho help COMMAND
     kicho --help
     kicho --version
@@ -94,6 +94,8 @@ EOF
 Options:
     -h, --help       Show this help message.
     -v, --version    Show version information.
+    --main FILE      Select the project main TeX file.
+    --build-dir DIR  Select the generated build directory.
 EOF
 }
 
@@ -124,4 +126,25 @@ kicho_copy_local_styles() {
         cp "$source" "$destination/" || return 1
     done
     return 0
+}
+
+# Shared optional Python capability used by paraids, exports and provenance.
+kicho_python_available() {
+    command -v python3 >/dev/null 2>&1 &&
+        python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1
+}
+
+kicho_require_python() {
+    if ! kicho_python_available; then
+        kicho_error 'Python 3.9 or later is required for paragraph-ID, archive, and submission operations.'
+        return 1
+    fi
+}
+
+kicho_copy_if_exists() {
+    if [[ -e "$1" ]]; then
+        cp -R "$1" "$2"
+    else
+        printf 'Warning: %s not found.\n' "$1" >&2
+    fi
 }

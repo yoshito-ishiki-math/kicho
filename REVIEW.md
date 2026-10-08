@@ -44,7 +44,6 @@ back only files created by the current invocation when a later write fails.
 Potential future work:
 
 - dry-run output for file-transforming commands;
-- failure-injection coverage for archive creation;
 - a safe command for combining selected sections in an explicit order.
 
 ## Templates

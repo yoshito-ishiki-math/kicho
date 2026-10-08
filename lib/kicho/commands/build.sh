@@ -6,11 +6,15 @@ kicho_command_build_summary() {
 }
 
 kicho_command_build_usage() {
-    printf 'Usage:\n    kicho build\n'
+    printf 'Usage:\n    kicho build [--strict]\n'
 }
 
 kicho_command_build_examples() {
-    printf 'Examples:\n    kicho build\n'
+    printf 'Examples:\n    kicho build\n    kicho build --strict\n'
+}
+
+kicho_command_build_accepts_arguments() {
+    return 0
 }
 
 kicho_command_build_requires_project() {
@@ -28,7 +32,7 @@ kicho_build_prepare_texmfvar() {
         return 0
     fi
 
-    local cache_directory="$PWD/build/texmf-var"
+    local cache_directory="$PWD/$KICHO_BUILD_DIR/texmf-var"
     if ! mkdir -p "$cache_directory"; then
         kicho_error "could not create LuaTeX cache directory: '$cache_directory'."
         return 1
@@ -40,8 +44,11 @@ kicho_build_prepare_texmfvar() {
 }
 
 kicho_command_build() {
-    if [[ $# -ne 0 ]]; then
-        kicho_error "build does not accept arguments."
+    local strict=false
+    if [[ $# -eq 1 && "$1" == --strict ]]; then
+        strict=true
+    elif [[ $# -ne 0 ]]; then
+        kicho_error "build does not accept arguments other than '--strict'."
         printf "Run 'kicho help build' for usage.\n" >&2
         return 1
     fi
@@ -52,7 +59,17 @@ kicho_command_build() {
 
     printf 'Building project...\n'
 
-    if latexmk -recorder; then
+    if latexmk -recorder "-outdir=$KICHO_BUILD_DIR" "-auxdir=$KICHO_BUILD_DIR" "$KICHO_MAIN"; then
+        # Output controls are read by the shared scanner.
+        # shellcheck disable=SC2034
+        local KICHO_SOURCE_JSON=false KICHO_SOURCE_QUIET=false
+        kicho_source_init
+        kicho_log_diagnostics
+        printf 'TeX log diagnostics: %d\n' "$KICHO_SOURCE_WARNINGS"
+        if [[ "$strict" == true ]] && ((KICHO_SOURCE_WARNINGS > 0)); then
+            kicho_error 'strict build requires a fresh log without unresolved citations or references.'
+            return 1
+        fi
         printf 'Build completed successfully.\n'
     else
         local status=$?

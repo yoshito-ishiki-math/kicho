@@ -93,8 +93,7 @@ then to the stable `v0.2.0` release.
 - [x] Recognize `\graphicspath`
 - [x] Report include cycles in `check`
 - [x] Add an optional machine-readable `check` format
-- [ ] Add missing citation and reference diagnostics only if a reliable existing
-      TeX tool can provide them
+- [x] Summarize undefined citations/references from TeX logs; support strict builds
 
 ### Source Organization
 
@@ -111,15 +110,18 @@ then to the stable `v0.2.0` release.
 
 - [ ] Add an optional compressed archive format
 - [x] Add explicit `submit --build` and stale-output warnings
+- [x] Preserve required hidden dependencies and compile extracted arXiv ZIPs in smoke tests
+- [x] Record exported file hashes and TeX tool versions in manifests
 - [x] Add an arXiv source ZIP and reusable metadata worksheet
 - [ ] Add submission profiles only after concrete journal requirements are known
 
 ### Configuration
 
-- [ ] Decide whether Kicho-specific settings justify `kicho.toml`
-- [ ] Make the main TeX file configurable
-- [ ] Make generated output locations configurable
-- [ ] Define configuration precedence, validation, and migration
+- [x] Use literal `kicho.conf` for two path settings; defer general TOML configuration
+- [x] Make the main TeX file configurable
+- [x] Make generated output locations configurable
+- [x] Define path-setting precedence and validation
+- [ ] Define migration of existing editor and latexmk configurations
 
 ### Updating and Migration
 
@@ -179,7 +181,8 @@ Priority: low. Complete and stabilize the CLI first.
 - [x] File transformations constrain references to the project
 - [x] Tests cover spaces and non-ASCII project paths
 - [x] Roll back files created by `split` and `submit` after known write failures
-- [ ] Handle process interruption during multi-file writes where practical
+- [x] Clean submission staging directories after handled signals
+- [ ] Handle interruption during split and flatten where practical
 
 ---
 

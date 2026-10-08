@@ -6,6 +6,12 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Added
 
+- Configure main/build paths through literal `kicho.conf`, environment variables,
+  and global `--main` / `--build-dir` options
+- Summarize unresolved TeX citations/references with `check --log` and `build --strict`
+- Diagnose optional Python 3.9+ and ZIP capabilities in `doctor`
+- Record SHA-256 file hashes and installed TeX tool versions in schema-2 manifests
+
 - Source file/line diagnostics and `check --json` structured output
 - `submit --build` to refresh PDFs, compiled bibliographies, and recorder files
 - Warnings when known inputs are newer than a copied submission PDF or BBL
@@ -19,7 +25,21 @@ All notable user-visible changes to Kicho are documented in this file.
 - Ignore comments and literal examples when detecting bibliography usage
 - Avoid treating inline verbatim examples as environment openings
 
+### Changed
+
+- Separate ordered source traversal, project paths, TeX log diagnostics, arXiv
+  packaging, and provenance from individual command implementations
+- Reuse one deduplicated dependency collector for copying and freshness checks
+- Check the Bash syntax of each shell file individually in the test harness
+
 ### Fixed
+
+- Keep explicitly referenced hidden files in arXiv ZIPs while excluding unrelated
+  hidden figure files; compile extracted ZIPs in real-template smoke tests
+- Process supported static commands in source order, including repeated inputs
+  under different graphicspath settings
+- Refuse cleaning generated directories containing authored TeX/bibliography/style files
+- Clean submission staging on failures and handled HUP/INT/TERM signals
 
 - Resolve literal graphicspath lists and report input/include cycles in `check`
 - Preserve nested project-local styles/classes and compiler-recorded inputs

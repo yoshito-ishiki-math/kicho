@@ -109,3 +109,11 @@ kicho_metadata_write_manifest() {
         printf '}\n'
     } > "$destination"
 }
+
+# Hash the finished export before its staging directory is published.
+kicho_metadata_add_provenance() {
+    local manifest="$1" root="$2"
+    shift 2
+    kicho_require_python || return 1
+    python3 "$KICHO_LIB_DIR/provenance.py" "$manifest" --root "$root" "$@"
+}

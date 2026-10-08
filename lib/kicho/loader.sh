@@ -191,6 +191,7 @@ kicho_check_command_requirements() {
 
     if kicho_command_query "$command" requires_project; then
         kicho_require_project
+        kicho_project_load || exit 1
     fi
 
     if kicho_command_query "$command" requires_latexmk; then

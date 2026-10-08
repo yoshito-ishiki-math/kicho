@@ -259,7 +259,8 @@ PROJECT/
 
 The default main document.
 
-The current template assumes `main.tex`, but the main document should become configurable in a future release.
+The template defaults to `main.tex`; project.sh resolves custom paths from
+`kicho.conf`, environment variables, and global command options.
 
 ### `preamble/`
 
@@ -875,11 +876,11 @@ The following decisions are currently accepted:
 - `.latexmkrc` remains the current build configuration.
 - `.latexmkrc` is temporarily used for project detection.
 - `main.tex` is the current default main document.
-- The main document should become configurable later.
+- Main and generated-output paths are configurable through project.sh.
 - A dedicated `kicho.toml` file may be introduced in the future.
 - New projects should support single-file writing.
 - Multi-file organization should remain optional.
-- Build artifacts belong in `build/`.
+- Build artifacts belong in the selected generated directory, default `build/`.
 - Cleaning must never remove source files.
 - `doctor` owns environment diagnostics; `check` owns detailed project validation.
 - Static validation reports only references it can resolve conservatively.
@@ -914,3 +915,21 @@ completed snapshots are never used as staging.
 
 Paragraph-ID directory traversal prunes generated Kicho export directories
 without preventing an explicitly selected stored edition from being inspected.
+
+
+### Project configuration and shared export responsibilities
+
+`project.sh` resolves the two literal project-path settings without evaluating
+shell or Perl configuration, and centralizes main/output path validation.
+`source.sh` owns static source traversal and its diagnostic records.
+`dependencies.sh` combines those literal inputs with compiler recorder inputs,
+keeps the original relative paths, and owns safe copying into export trees.
+Command modules only parse command-specific options and orchestrate these
+helpers. Preserve Bash 3.2 and the current command metadata protocol.
+
+`arxiv.sh` owns ZIP staging and metadata worksheets.
+`diagnostics.sh` reads warnings produced by existing TeX tools; it never
+reimplements citation or label resolution. `provenance.py` uses Python's
+standard library for deterministic streaming file hashes and JSON metadata
+augmentation. Shared copy/staging helpers remain small functions, without a
+plugin framework or generic transaction system.

@@ -11,7 +11,7 @@ Usage:
     kicho split [FILE]
 
 Move blocks delimited by "% kicho:section NAME" and "% kicho:end"
-from FILE into sections/NAME.tex. FILE defaults to main.tex.
+from FILE into sections/NAME.tex. FILE defaults to the configured main file (main.tex by default).
 USAGE
 }
 
@@ -243,7 +243,7 @@ kicho_command_split() {
         return 1
     fi
 
-    local source_file="${1:-main.tex}"
+    local source_file="${1:-$KICHO_MAIN}"
     local project_root
     project_root="$(pwd -P)"
 

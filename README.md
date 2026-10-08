@@ -226,6 +226,21 @@ Rather than replacing existing tools, Kicho integrates them into a consistent pr
 
 ---
 
+## Project paths
+
+Project paths can be configured in a literal `kicho.conf`:
+
+```text
+main = paper.tex
+build_dir = output
+```
+
+Global `--main` / `--build-dir` options override environment settings and the
+project file. `kicho check --log --json` includes TeX-log diagnostics, and
+`kicho build --strict` fails on unresolved citations/references. Export
+manifests include file hashes and TeX tool versions. See [SPEC.md](SPEC.md) for
+precedence, safety rules, and the provenance schema.
+
 ## License
 
 MIT License

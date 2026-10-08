@@ -166,6 +166,7 @@ Build the current LaTeX project.
 
 ```bash
 kicho build
+kicho build --strict
 ```
 
 #### Current Requirements
@@ -179,12 +180,14 @@ kicho build
 The command runs:
 
 ```bash
-latexmk
+latexmk -recorder -outdir=build -auxdir=build main.tex
 ```
 
-The command does not accept arguments.
+The example uses default paths. `--strict` requires a fresh TeX log without
+unresolved citation/reference warnings.
 
-When `TEXMFVAR` is unset, Kicho creates `build/texmf-var/` and exports it to
+When `TEXMFVAR` is unset, Kicho creates `texmf-var/` under the selected build
+directory and exports it to
 `latexmk` as a writable project-local LuaTeX font-cache directory. An explicit
 non-empty `TEXMFVAR` is preserved. The built-in `.latexmkrc` templates apply
 the same unset-only fallback, so direct `latexmk` and LaTeX Workshop builds use
@@ -208,25 +211,11 @@ flags to `.latexmkrc`.
 fallback when no value is set, has a writable directory. An unwritable explicit
 setting produces a warning but is not replaced.
 
-#### Future Configuration
+#### Project Paths
 
-The main document may become configurable in a future release.
-
-For example, a project may eventually specify:
-
-```text
-main.tex
-paper.tex
-book.tex
-```
-
-The configuration format has not yet been finalized.
-
-A future version may introduce a Kicho-specific configuration file such as:
-
-```text
-kicho.toml
-```
+The main document and generated output directory can be selected in
+`kicho.conf`, by environment variables, or by global command options. Engine
+settings remain in `.latexmkrc`. See the project-path specification below.
 
 #### Exit Status
 
@@ -257,15 +246,16 @@ kicho clean
 
 #### Behavior
 
-The command first runs:
+After validating the generated directory, the command runs (for default paths):
 
 ```bash
-latexmk -C
+latexmk -C -outdir=build -auxdir=build main.tex
 ```
 
 The command does not accept arguments.
 
-It then removes the generated `build/` directory.
+It then removes the selected generated directory (default `build/`). It refuses
+to remove a directory containing `.tex`, `.bib`, `.sty`, `.cls`, or `.bst` sources.
 
 Source files such as the following must not be removed:
 
@@ -299,7 +289,8 @@ kicho doctor
 
 The command can run inside or outside a Kicho project. It checks the Kicho
 installation, required commands (`bash`, `latexmk`, `lualatex`, and `biber`),
-and optional Git availability. Project files are intentionally handled by
+and optional Git, Python 3.9+, and ZIP capabilities. Project files are
+intentionally handled by
 `kicho check`.
 
 Warnings do not make the command fail. A missing required command or a broken
@@ -572,7 +563,8 @@ Create a read-only snapshot of the current project.
 kicho archive
 ```
 
-The command requires a Kicho project and does not accept arguments. It creates:
+The command requires a Kicho project and Python 3.9+ and does not accept
+arguments. It creates:
 
 ```text
 archives/YYYY-MM-DD_HH-MM-SS/
@@ -583,8 +575,9 @@ archives/YYYY-MM-DD_HH-MM-SS/
     └── archive.json
 ```
 
-The source snapshot copies `main.tex`, `sections/`, `preamble/`, `figures/`,
-`bib/`, and `.latexmkrc` when present. Missing source entries produce warnings
+The source snapshot copies the selected main file, `sections/`, `preamble/`,
+`figures/`, `bib/`, and `.latexmkrc` when present, plus normalized path settings.
+Missing source entries produce warnings
 without failing the archive.
 
 After copying, Kicho runs its static project check inside `source/`. If it
@@ -595,7 +588,8 @@ if the referenced file was missing from the live source. This does not discover 
 certify that the snapshot builds; custom styles and dynamic references still
 require review.
 
-If `build/main.pdf` exists, it is copied to `pdf/main.pdf`. A missing PDF
+If the selected PDF (default `build/main.pdf`) exists, it is copied to
+`pdf/main.pdf`. A missing PDF
 produces a warning and leaves the `pdf/` directory empty.
 
 `archive.json` records the Kicho version, creation time, and project directory
@@ -709,11 +703,12 @@ submission/
 └── manifest.json
 ```
 
-The ZIP contains flattened `main.tex`, `build/main.bbl` renamed to `main.bbl`,
+The ZIP contains flattened `main.tex`, the selected compiled `.bbl` renamed to `main.bbl`,
 the `figures/` directory, and project-local style/class dependencies, including
 those in subdirectories. It does not contain `.bib` files, the built PDF, `.latexmkrc`, the manifest, the
-metadata worksheet, or hidden files. If the document uses a bibliography and
-`build/main.bbl` is missing, the command fails and asks the user to build first.
+metadata worksheet, or unreferenced hidden files from conventional figure copies.
+Explicitly referenced hidden dependencies are retained. If the document uses a bibliography and
+the selected compiled `.bbl` file is missing, the command fails and asks the user to build first.
 
 When a project-root `arxiv-metadata.txt` exists, it is the user-maintained
 source of truth and is copied unchanged. Otherwise Kicho creates a draft from
@@ -746,7 +741,7 @@ Kicho-specific configuration should be introduced only when it provides function
 Archives additionally copy statically resolved project-local input, bibliography,
 figure, package, class, and bibliography-style dependencies, preserving relative
 paths (including `parts/` and `styles/`). Local styles are scanned recursively.
-A matching project-root `build/main.fls` additionally supplies compiler-recorded
+A matching project-root recorder file (default `build/main.fls`) additionally supplies compiler-recorded
 project-local dependencies, excluding generated auxiliary files. External TeX
 installation files are not copied. `kicho build` explicitly enables the recorder.
 Stale recorder files for another project root are ignored with a warning.
@@ -757,3 +752,59 @@ bibliography commands. Missing or unsafe dependencies stop submission; archives
 retain available sources and report missing dependencies as warnings.
 Commented commands, inline `\verb` / `\verb*` examples, and known literal
 blocks are ignored when discovering references and bibliography usage.
+
+
+## Project paths, build diagnostics, and provenance
+
+`kicho.conf` is an optional UTF-8 project-root file with literal `key = value`
+lines. Supported keys are `main` (default `main.tex`) and `build_dir` (default
+`build`). Empty lines and full-line `#` comments are allowed. Values are unquoted
+relative paths; spaces are allowed and quote characters are literal. Unknown or duplicate keys, empty values,
+absolute paths, parent components, and symlink path components are errors.
+The main path must end in `.tex`; the build directory must not be the project
+root, a source ancestor, or a reserved Kicho/Git output directory.
+
+Precedence is command-line `--main FILE` / `--build-dir DIR`, then environment
+`KICHO_MAIN` / `KICHO_BUILD_DIR`, then `kicho.conf`, then defaults. Global options
+precede the command. These settings apply to existing-project commands; `init`
+retains the selected template's default layout. They do not change TeX engine
+selection. Direct editor builds and Git-ignore rules must be adjusted separately
+when custom paths are chosen; Kicho does not rewrite those files. `build` and `clean` pass the selected main, output, and auxiliary
+directory explicitly to latexmk. The output stem is the main filename without
+`.tex`; customized latexmk job names are outside this path contract.
+
+`check`, `flatten`, `split` (when FILE is omitted), `archive`, and `submit`
+use the selected main file. Flattening and submission retain canonical
+`main.tex` output names. Standard submissions contain a normalized `kicho.conf`
+so they build independently with `kicho build`; archives retain the selected
+paths and a normalized configuration alongside the original sources.
+
+The static source scanner processes supported commands in source order,
+including multiple graphicspath declarations and image/input commands on one
+line. Repeated inputs are scanned in their current path context. This remains
+a literal scanner; it does not evaluate arbitrary TeX macros or conditionals.
+
+`doctor` additionally reports Python 3.9+ (paragraph IDs, submissions and
+provenance) and `zip` (arXiv packaging). Archives also require Python for provenance. Missing optional capabilities produce
+warnings, retaining the existing core LaTeX failure rules.
+
+`build [--strict]` summarizes undefined citation/reference warnings from the
+selected TeX log after a successful latexmk run. `--strict` returns failure when
+those warnings remain. `check --log [--json]` combines static diagnostics with
+warnings from that log without compiling. Missing logs and logs older than
+known inputs are warnings; strict builds fail if a fresh log is unavailable.
+This diagnostic summary never verifies mathematical correctness.
+
+arXiv ZIPs include explicitly referenced hidden project files. Unreferenced
+hidden files from bulk figure copies are excluded before dependencies are
+copied; needed files are never silently removed by ZIP patterns. Fast tests
+inspect archive contents, while real-template smoke tests extract arXiv ZIPs
+and compile only their exported sources, including compiled bibliographies.
+
+Archive and submission metadata have `schema_version: 2`, retain the existing
+fields, and add `tools` and `files`. `files` maps package-relative regular-file
+paths to SHA-256 digests; `tools` records available TeX tool versions, with null
+for missing or unavailable version probes. Versions describe the tools available
+at export time, not necessarily those that produced a previously copied PDF. Metadata itself is excluded from the digest map. These are
+artifact provenance records, not proof-validation records. arXiv manifests
+also contain a `source_files` digest map for the uncompressed ZIP entries.

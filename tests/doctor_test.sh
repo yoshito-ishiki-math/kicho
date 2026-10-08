@@ -51,7 +51,7 @@ mkdir -p "$incomplete_project"
 : > "$incomplete_project/.latexmkrc"
 
 all_tools="$test_root/all-tools"
-make_tool_path "$all_tools" latexmk lualatex biber git
+make_tool_path "$all_tools" latexmk lualatex biber git python3 zip
 
 run_doctor "$complete_project" "$all_tools"
 assert_status 0 'doctor in a complete environment'
@@ -61,7 +61,7 @@ assert_contains 'Failures: 0' "$command_stdout" 'doctor success failures'
 assert_contains 'Warnings: 0' "$command_stdout" 'doctor success warnings'
 
 missing_biber="$test_root/missing-biber"
-make_tool_path "$missing_biber" latexmk lualatex git
+make_tool_path "$missing_biber" latexmk lualatex git python3 zip
 
 run_doctor "$complete_project" "$missing_biber"
 assert_status 1 'doctor with a missing required tool'
@@ -70,7 +70,7 @@ assert_contains 'Failures: 1' "$command_stdout" 'missing tool failure count'
 assert_contains 'found required problems' "$command_stdout" 'doctor failure summary'
 
 warning_tools="$test_root/warning-tools"
-make_tool_path "$warning_tools" latexmk lualatex biber
+make_tool_path "$warning_tools" latexmk lualatex biber python3 zip
 
 run_doctor "$complete_project" "$warning_tools"
 assert_status 0 'doctor warning exit status'
@@ -88,6 +88,23 @@ TEXMFVAR="$invalid_texmfvar" run_doctor "$complete_project" "$all_tools"
 assert_status 0 'doctor warns for unwritable explicit TEXMFVAR'
 assert_contains 'TEXMFVAR is not writable:' "$command_stdout" 'doctor unwritable cache warning'
 assert_contains 'Warnings: 1' "$command_stdout" 'doctor cache warning count'
+
+missing_workflows="$test_root/missing-workflows"
+make_tool_path "$missing_workflows" latexmk lualatex biber git
+run_doctor "$complete_project" "$missing_workflows"
+assert_status 0 'optional workflow dependencies do not fail core doctor checks'
+assert_contains 'Python 3.9+ is unavailable' "$command_stdout" 'missing Python capability'
+assert_contains 'zip was not found' "$command_stdout" 'missing ZIP capability'
+assert_contains 'Warnings: 2' "$command_stdout" 'two missing optional capabilities'
+
+old_python="$test_root/old-python"
+make_tool_path "$old_python" latexmk lualatex biber git zip
+printf '#!/bin/bash\nexit 1\n' > "$old_python/python3"
+chmod +x "$old_python/python3"
+run_doctor "$complete_project" "$old_python"
+assert_status 0 'unsupported Python version is an optional capability warning'
+assert_contains 'Python 3.9+ is unavailable' "$command_stdout" 'old Python capability'
+assert_contains 'Warnings: 1' "$command_stdout" 'unsupported Python version warning count'
 
 run_doctor "$complete_project" "$all_tools" unexpected
 assert_status 1 'doctor argument error'
