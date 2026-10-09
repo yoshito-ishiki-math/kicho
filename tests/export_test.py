@@ -49,6 +49,165 @@ printf FRESH-BBL > build/main.bbl
 printf 'PWD %s\\nINPUT main.tex\\n' "$PWD" > build/main.fls
 """ + f"exit {status}\n")
 
+    def test_literal_ranges_keep_adjacent_dependencies_and_source_locations(self):
+        self.write('parts/before.tex', 'BEFORE\n')
+        self.write('parts/after.tex', 'AFTER\n')
+        self.write('parts/inline.tex', 'INLINE\n')
+        self.write('main.tex', r'''\documentclass{article}
+Before \input{parts/before}\begin{verbatim}
+\input{literal-missing}
+\end{verbatim}\input{parts/after} After.
+\verb*|\begin{verbatim}\input{inline-missing}| \input{parts/inline}
+\verbあ\input{unicode-missing}あ
+''')
+        result = self.cli('check', '--json')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)['errors'], 0)
+        result = self.cli('submit', '--arxiv')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with zipfile.ZipFile(self.root / 'submission/arxiv-source.zip') as archive:
+            for name in ('before', 'after', 'inline'):
+                self.assertIn('parts/' + name + '.tex', archive.namelist())
+        self.write('main.tex', r'\input{missing-active}\begin{verbatim}' + '\n'
+                   r'\input{missing-literal}' + '\n' + r'\end{verbatim}' + '\n')
+        result = self.cli('check', '--json')
+        data = json.loads(result.stdout)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(data['errors'], 1)
+        self.assertEqual(data['diagnostics'][0]['line'], 1)
+        self.assertIn('missing-active', data['diagnostics'][0]['message'])
+
+    def test_multiline_literal_delimiters_are_shared_by_checks_and_flatten(self):
+        source = (r'\begin% opening comment' + '\n{verbatim*}\n' + r'\input{not-an-input}' + '\n'
+                  + r'\end' + '\n{verbatim*}\n' + r'\input{parts/body}' + '\n')
+        self.write('main.tex', source)
+        self.write('parts/body.tex', 'ACTUAL BODY\n')
+        result = self.cli('check', '--json')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)['errors'], 0)
+        result = self.cli('flatten')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        expected = source.replace(r'\input{parts/body}', 'ACTUAL BODY')
+        self.assertEqual((self.root / 'dist/main.tex').read_text(), expected)
+
+    def test_literal_adjacent_figure_is_protected_before_clean_invokes_latexmk(self):
+        original = self.write('artwork/main.pdf', 'ORIGINAL FIGURE\n')
+        self.write('kicho.conf', 'build_dir = artwork\n')
+        self.write('main.tex', r'\includegraphics{artwork/main.pdf}\begin{verbatim}'
+                   + '\n' + r'\input{missing-example}' + '\n' + r'\end{verbatim}' + '\n')
+        env = self.fake('latexmk', 'printf INVOKED > cleaner-was-invoked\nexit 90\n')
+        result = self.cli('clean', env=env)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('source dependency', result.stderr)
+        self.assertEqual(original.read_text(), 'ORIGINAL FIGURE\n')
+        self.assertFalse((self.root / 'cleaner-was-invoked').exists())
+
+    def test_submission_main_collision_is_rejected_but_archive_preserves_sources(self):
+        self.write('kicho.conf', 'main = paper.tex\n')
+        self.write('paper.tex', '\\documentclass{article}\n\\begin{document}\n'
+                   '\\input{main}\n\\end{document}\n')
+        original = self.write('main.tex', 'INCLUDED BODY\n').read_bytes()
+        for args in (('submit', '--output', 'standard'), ('submit', '--arxiv')):
+            with self.subTest(args=args):
+                result = self.cli(*args)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("conflicts with generated output: 'main.tex'", result.stderr)
+                self.assertFalse((self.root / ('standard' if len(args) == 3 else 'submission')).exists())
+                self.assertFalse((self.root / 'arxiv-metadata.txt').exists())
+                self.assertEqual((self.root / 'main.tex').read_bytes(), original)
+        result = self.cli('archive')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        source = next((self.root / 'archives').glob('*/source'))
+        self.assertEqual((source / 'main.tex').read_bytes(), original)
+        self.assertEqual((source / 'paper.tex').read_bytes(), (self.root / 'paper.tex').read_bytes())
+
+    def test_generated_submission_filenames_are_reserved(self):
+        self.write('kicho.conf', 'main = paper.tex\n')
+        for name in ('main.pdf', 'Main.pdf', 'Main.tex', 'manifest.json', 'kicho.conf', 'main.bbl'):
+            with self.subTest(name=name):
+                if name != 'kicho.conf':
+                    self.write(name, 'ORIGINAL DEPENDENCY\n')
+                command = 'includegraphics' if name.lower() == 'main.pdf' else 'input'
+                self.write('paper.tex', '\\' + command + '{' + name + '}\n')
+                args = ('submit', '--arxiv') if name == 'main.bbl' else ('submit',)
+                result = self.cli(*args)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('conflicts with generated output', result.stderr)
+                self.assertFalse((self.root / 'submission').exists())
+                self.assertFalse((self.root / 'arxiv-metadata.txt').exists())
+
+    def test_split_partial_copy_rolls_back_current_and_previous_sections(self):
+        source = ('BEFORE\n% kicho:section a-first\nFIRST\n% kicho:end\n'
+                  '% kicho:section b-partial\nSECOND\n% kicho:end\nAFTER\n')
+        self.write('main.tex', source)
+        self.write('sections/keep.tex', 'PRE-EXISTING SOURCE\n')
+        env = self.fake('cp', r'''if [[ "$2" == sections/b-partial.tex ]]; then
+    printf 'PARTIAL COPY\n' > "$2"
+    exit 74
+fi
+exec /bin/cp "$@"
+''')
+        result = self.cli('split', env=env)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertNotIn('rollback was incomplete', result.stderr)
+        self.assertEqual((self.root / 'main.tex').read_text(), source)
+        self.assertEqual((self.root / 'sections/keep.tex').read_text(), 'PRE-EXISTING SOURCE\n')
+        for name in ('sections/a-first.tex', 'sections/b-partial.tex', 'main.tex.kicho-backup'):
+            self.assertFalse((self.root / name).exists(), name)
+        result = self.cli('split')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.root / 'sections/b-partial.tex').read_text(), 'SECOND\n')
+
+    def test_split_preserves_marker_examples_inside_every_known_literal_block(self):
+        literal = ''
+        for name in ('verbatim', 'verbatim*', 'Verbatim', 'Verbatim*', 'BVerbatim',
+                     'LVerbatim', 'lstlisting', 'minted'):
+            literal += ('\\begin{' + name + '}\n% kicho:section example\nEXAMPLE\n'
+                        '% kicho:end\n% kicho:section Invalid!\n\\end{' + name + '}\n')
+        self.write('main.tex', literal + '% kicho:section actual\nSTART\n' + literal
+                   + 'END\n% kicho:end\nAFTER\n')
+        result = self.cli('split')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.root / 'main.tex').read_text(),
+                         literal + '\\input{sections/actual}\nAFTER\n')
+        self.assertEqual((self.root / 'sections/actual.tex').read_text(), 'START\n' + literal + 'END\n')
+        self.assertFalse((self.root / 'sections/example.tex').exists())
+
+    def test_split_rejects_unclosed_literal_block_without_writes(self):
+        source = ('% kicho:section actual\nBODY\n% kicho:end\n'
+                  '\\begin{verbatim}\n% kicho:section example\n')
+        self.write('main.tex', source)
+        result = self.cli('split')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('unclosed literal environment', result.stderr)
+        self.assertEqual((self.root / 'main.tex').read_text(), source)
+        self.assertFalse((self.root / 'main.tex.kicho-backup').exists())
+        self.assertFalse((self.root / 'sections').exists())
+
+    def test_metadata_abstract_stops_at_inline_closing_delimiter(self):
+        forms = (
+            ('\\begin{abstract}Short abstract.\\end{abstract}\n', 'Short abstract.'),
+            ('\\begin{abstract}\nTwo lines\nof abstract.\n\\end{abstract}\n', 'Two lines\nof abstract.'),
+            ('\\maketitle\\begin{abstract}First line\nLast line.\\end{abstract}IGNORED BODY\n',
+             'First line\nLast line.'),
+            ('\\begin{abstract}日本語の要旨。\\end{abstract}\n', '日本語の要旨。'),
+            ('\\begin{abstract}\nUnclosed abstract.\n', '[Please fill in]'),
+        )
+        for index, (form, expected) in enumerate(forms):
+            with self.subTest(form=form):
+                self.write('main.tex', '\\title{Actual title}\n\\author{Actual Author}\n' + form
+                           + '\\section{Body}\nARTICLE BODY\n\\end{document}\n')
+                metadata = self.root / 'arxiv-metadata.txt'
+                if metadata.exists():
+                    metadata.unlink()
+                result = self.cli('submit', '--arxiv', '--output', 'abstract-' + str(index))
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                content = metadata.read_text()
+                extracted = content.split('Abstract:\n', 1)[1].split('\n\nComments:', 1)[0]
+                self.assertEqual(extracted, expected)
+                self.assertNotIn('ARTICLE BODY', content)
+                self.assertNotIn('IGNORED BODY', content)
+
     def test_hidden_dependencies_are_kept_but_unreferenced_hidden_figures_are_not(self):
         self.write("main.tex", "Before \\input{.parts/body} after.\n"
                    "\\includegraphics{figures/.required.pdf}\n")

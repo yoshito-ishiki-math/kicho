@@ -34,6 +34,13 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Fixed
 
+- Preserve active references beside literal environments, preventing missing
+  export dependencies and unsafe cleanup of original figures
+- Reject submission dependencies that collide with generated root output files
+- Retain page boundaries when flattening full-line `\include` commands
+- Remove partial section copies during split rollback and ignore literal marker examples
+- Extract one-line and mixed-line abstracts without absorbing subsequent body text
+
 - Preserve referenced figures, recorded data, other files, and populated caches
   during cleaning; prune only empty generated directories after latexmk
 - Collect multiline literal dependencies and restore graphics search paths after

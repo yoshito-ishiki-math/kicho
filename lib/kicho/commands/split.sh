@@ -112,6 +112,7 @@ kicho_split_resolve_source() {
 
 kicho_split_validate() {
     local source_file="$1"
+    local literal_mask="$2"
     local current_section=""
     local line
     local section_count=0
@@ -165,7 +166,7 @@ kicho_split_validate() {
             kicho_error "invalid split marker: '$line'."
             return 1
         fi
-    done < "$source_file"
+    done < "$literal_mask"
 
     if [[ -n "$current_section" ]]; then
         kicho_error "split section '$current_section' has no end marker."
@@ -181,6 +182,7 @@ kicho_split_validate() {
 kicho_split_render() {
     local destination="$1"
     local source_file="$2"
+    local literal_mask="$3" active_line
     local current_section=""
     local line
     local section_name
@@ -189,19 +191,20 @@ kicho_split_render() {
     : > "$destination/source.tex"
 
     while IFS= read -r line || [[ -n "$line" ]]; do
+        IFS= read -r active_line <&3 || [[ -n "$active_line" ]]
         section_name=""
-        if section_name="$(kicho_split_section_name "$line")"; then
+        if section_name="$(kicho_split_section_name "$active_line")"; then
             current_section="$section_name"
             : > "$destination/sections/$section_name.tex"
             printf '\\input{sections/%s}\n' "$section_name" >> "$destination/source.tex"
-        elif kicho_split_is_end_marker "$line"; then
+        elif kicho_split_is_end_marker "$active_line"; then
             current_section=""
         elif [[ -n "$current_section" ]]; then
             printf '%s\n' "$line" >> "$destination/sections/$current_section.tex"
         else
             printf '%s\n' "$line" >> "$destination/source.tex"
         fi
-    done < "$source_file"
+    done < "$source_file" 3< "$literal_mask"
 }
 
 kicho_split_rollback() {
@@ -251,17 +254,19 @@ kicho_command_split() {
         return 1
     fi
 
-    if ! kicho_split_validate "$source_file"; then
-        return 1
-    fi
-
     local temporary_directory
     temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/kicho-split.XXXXXX")" || {
         kicho_error "could not create temporary split directory."
         return 1
     }
 
-    if ! kicho_split_render "$temporary_directory" "$source_file"; then
+    local literal_mask="$temporary_directory/literal-mask.tex"
+    if ! kicho_tex_nonliteral_file "$source_file" > "$literal_mask" ||
+        ! kicho_split_validate "$source_file" "$literal_mask"; then
+        rm -rf "$temporary_directory"
+        return 1
+    fi
+    if ! kicho_split_render "$temporary_directory" "$source_file" "$literal_mask"; then
         rm -rf "$temporary_directory"
         kicho_error "could not prepare split output."
         return 1
@@ -292,6 +297,7 @@ kicho_command_split() {
     local created_sections=()
     for section_file in "$temporary_directory/sections/"*.tex; do
         section_name="${section_file##*/}"
+        created_sections+=("sections/$section_name")
         if ! cp "$section_file" "sections/$section_name"; then
             rm -rf "$temporary_directory"
             if ! kicho_split_rollback \
@@ -303,7 +309,6 @@ kicho_command_split() {
             kicho_error "could not copy split section files."
             return 1
         fi
-        created_sections+=("sections/$section_name")
     done
 
     if ! cp "$temporary_directory/source.tex" "$source_file"; then

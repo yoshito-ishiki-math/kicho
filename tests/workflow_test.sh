@@ -209,7 +209,9 @@ printf 'TWO\n' > "$flatten_project/parts/two.tex"
 {
     printf 'START\n'
     printf 'ONE\n'
+    printf '\\clearpage\n'
     printf 'TWO\n'
+    printf '\\clearpage\n'
     printf 'END\n'
 } > "$test_root/expected-flat.tex"
 

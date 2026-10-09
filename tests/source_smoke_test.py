@@ -1,6 +1,7 @@
 """Real-tool checks for source safety and independently compilable exports."""
 import json
 from pathlib import Path
+import re
 import struct
 import subprocess
 import tempfile
@@ -43,12 +44,131 @@ class SourceSmoke(unittest.TestCase):
     def cli(self, *args):
         return self.run_command(['/bin/bash', str(ROOT / 'bin/kicho'), *args])
 
-    def compile(self, root=None):
+    def compile(self, root=None, source='main.tex'):
         root = root or self.root
         (root / 'build').mkdir(exist_ok=True)
         result = self.run_command(['pdflatex', '-interaction=nonstopmode', '-halt-on-error',
-                                   '-output-directory=build', 'main.tex'], root)
+                                   '-output-directory=build', source], root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
+
+    def pages(self, result):
+        match = re.search(r'Output written on .*?\((\d+) pages?,', result.stdout, re.S)
+        self.assertIsNotNone(match, result.stdout)
+        return int(match[1])
+
+    def test_inline_input_beside_literal_block_survives_zip_export(self):
+        self.write('parts/body.tex', 'Actual body before the literal block.\n')
+        self.write('main.tex', r'''\documentclass{article}
+\begin{document}
+\input{parts/body}\begin{verbatim}
+\input{missing-example}
+\end{verbatim}
+\end{document}
+''')
+        self.compile()
+        self.assertFalse((self.root / 'build/main.fls').exists())
+        result = self.cli('check', '--json')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.cli('submit', '--arxiv')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        unpacked = Path(self.temp.name) / 'inline-export'
+        with zipfile.ZipFile(self.root / 'submission/arxiv-source.zip') as archive:
+            self.assertIn('parts/body.tex', archive.namelist())
+            self.assertIn(r'\input{missing-example}', archive.read('main.tex').decode())
+            archive.extractall(unpacked)
+        self.compile(unpacked)
+
+    def test_clean_protects_pdf_that_overlaps_the_output_name_beside_literal_block(self):
+        self.write('figure.tex', '\\documentclass{article}\n'
+                   '\\begin{document}Original figure.\\end{document}\n')
+        self.compile(source='figure.tex')
+        original = (self.root / 'build/figure.pdf').read_bytes()
+        self.write('artwork/main.pdf', original)
+        self.write('kicho.conf', 'build_dir = artwork\n')
+        self.write('main.tex', r'''\documentclass{article}
+\usepackage{graphicx}
+\begin{document}
+\includegraphics[width=1cm]{artwork/main.pdf}\begin{verbatim}
+Literal example.
+\end{verbatim}
+\end{document}
+''')
+        self.compile()
+        self.assertFalse((self.root / 'build/main.fls').exists())
+        result = self.cli('clean')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('source dependency', result.stderr)
+        self.assertEqual((self.root / 'artwork/main.pdf').read_bytes(), original)
+
+    def test_include_page_boundaries_survive_flatten_and_both_submissions(self):
+        self.write('parts/one.tex', 'First included page.\n')
+        self.write('parts/two.tex', 'Second included page.\n')
+        self.write('main.tex', '\\documentclass{article}\n\\begin{document}\n'
+                   '\\include{parts/one}\n\\include{parts/two}\n\\end{document}\n')
+        (self.root / 'build/parts').mkdir()
+        self.assertEqual(self.pages(self.compile()), 2)
+        result = self.cli('flatten')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.pages(self.compile(source='dist/main.tex')), 2)
+        result = self.cli('submit', '--output', 'standard')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.pages(self.compile(self.root / 'standard')), 2)
+        result = self.cli('submit', '--arxiv')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        unpacked = Path(self.temp.name) / 'include-export'
+        with zipfile.ZipFile(self.root / 'submission/arxiv-source.zip') as archive:
+            archive.extractall(unpacked)
+        self.assertEqual(self.pages(self.compile(unpacked)), 2)
+
+    def test_main_collision_stops_submission_and_archive_still_compiles(self):
+        self.write('kicho.conf', 'main = paper.tex\n')
+        self.write('paper.tex', '\\documentclass{article}\n\\begin{document}\n'
+                   '\\input{main}\n\\end{document}\n')
+        self.write('main.tex', 'Original included body.\n')
+        self.compile(source='paper.tex')
+        for args in (('submit', '--output', 'standard'), ('submit', '--arxiv')):
+            result = self.cli(*args)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn('conflicts with generated output', result.stderr)
+        self.assertFalse((self.root / 'standard').exists())
+        self.assertFalse((self.root / 'submission').exists())
+        self.assertFalse((self.root / 'arxiv-metadata.txt').exists())
+        result = self.cli('archive')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        source = next((self.root / 'archives').glob('*/source'))
+        self.compile(source, 'paper.tex')
+
+    def test_split_preserves_compilable_literal_marker_examples(self):
+        literal = (r'\begin% opening comment' + '\n{verbatim}\n% kicho:section example\n'
+                   'Literal marker documentation.\n% kicho:end\n\\end{verbatim}\n')
+        original = ('\\documentclass{article}\n\\begin{document}\n' + literal
+                    + '% kicho:section actual\nActual section body.\n% kicho:end\n\\end{document}\n')
+        self.write('main.tex', original)
+        self.compile()
+        result = self.cli('split')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(literal, (self.root / 'main.tex').read_text())
+        self.assertFalse((self.root / 'sections/example.tex').exists())
+        self.assertEqual((self.root / 'main.tex.kicho-backup').read_text(), original)
+        self.compile()
+
+    def test_one_line_abstract_matches_the_compilable_original(self):
+        self.write('main.tex', '\\documentclass{article}\n\\title{Actual title}\n'
+                   '\\author{Actual Author}\n\\begin{document}\n\\maketitle\n'
+                   '\\begin{abstract}The actual short abstract.\\end{abstract}\n'
+                   '\\section{Body}\nArticle body.\n\\end{document}\n')
+        self.compile()
+        result = self.cli('submit', '--arxiv')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        metadata = (self.root / 'arxiv-metadata.txt').read_text()
+        abstract = metadata.split('Abstract:\n', 1)[1].split('\n\nComments:', 1)[0]
+        self.assertEqual(abstract, 'The actual short abstract.')
+        self.assertNotIn('Article body.', metadata)
+        unpacked = Path(self.temp.name) / 'abstract-export'
+        with zipfile.ZipFile(self.root / 'submission/arxiv-source.zip') as archive:
+            archive.extractall(unpacked)
+        self.compile(unpacked)
 
     def test_multiline_grouped_zip_compiles_without_recorder(self):
         self.write('outer/one.png', png())

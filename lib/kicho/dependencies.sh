@@ -94,7 +94,7 @@ kicho_dependencies_collect() {
 }
 
 kicho_copy_source_dependencies() {
-    local destination="$1" mode="$2" file relative root
+    local destination="$1" mode="$2" file relative root output_name
     root="$(pwd -P)"
     kicho_dependencies_collect export || return 1
     if ((KICHO_DEPENDENCY_ERRORS > 0)) && [[ "$mode" != archive ]]; then
@@ -105,6 +105,18 @@ kicho_copy_source_dependencies() {
         kicho_error "$(kicho_project_output bbl) was not found for an included document that uses a bibliography."
         return 1
     fi
+    # Dependencies retain their original names; never replace generated output.
+    for file in "${KICHO_DEPENDENCY_FILES[@]}"; do
+        relative="${file#"$root/"}"
+        [[ "$relative" != "$KICHO_MAIN" ]] || continue
+        [[ "$relative" != */* ]] || continue
+        output_name="$(printf '%s' "$relative" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+        case "$mode/$output_name" in
+            arxiv/main.tex|arxiv/main.bbl|standard/main.tex|standard/main.pdf|standard/kicho.conf|standard/manifest.json)
+                kicho_error "submission dependency conflicts with generated output: '$relative'. Rename the dependency before submission."
+                return 1 ;;
+        esac
+    done
     for file in "${KICHO_DEPENDENCY_FILES[@]}"; do
         relative="${file#"$root/"}"
         [[ "$relative" != "$KICHO_MAIN" ]] || continue

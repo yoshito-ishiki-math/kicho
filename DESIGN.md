@@ -564,7 +564,10 @@ The command defaults to `main.tex` and can also split a specified project-local
 `.tex` file, allowing an existing section to be divided further. All source
 paths, markers, and output paths are validated before writes begin. The original
 source is preserved beside it as a backup, and existing section files are never
-overwritten.
+overwritten. Validation and rendering consume the same comment-preserving
+literal mask, so marker examples inside literal environments cannot disagree
+between the two passes. A section path enters the rollback list before its copy
+begins, including any partial result of a failed copy.
 
 ### `flatten`
 
@@ -573,9 +576,13 @@ statements. Restricting expansion to complete lines keeps the MVP behavior
 explicit and avoids pretending to be a complete TeX parser. Paths are confined
 to the project, cycles are rejected, and output is written to `dist/main.tex`
 without changing source files. Known verbatim/listing environments are tracked
-locally during each source scan and their contents are preserved. Shared
-comment stripping distinguishes escaped percent signs from comments. Output
-directory links and existing destination links are rejected before publication.
+by the shared `tex-active.awk` filter, preserving source offsets and line counts.
+The filter masks only literal ranges, so surrounding active text remains
+visible; its comment-preserving mode also serves `split` and `flatten`. Strict
+transformation scans reject unclosed literal blocks. Expanded `\include`
+commands receive leading and trailing `\clearpage`; ordinary `\input` does not.
+Output directory links and existing destination links are rejected before
+publication.
 
 ### `archive`
 
@@ -605,7 +612,11 @@ have been copied, without claiming complete TeX dependency analysis.
 The `submit` command prepares a new local `submission/` directory containing a
 flattened main document, bibliography, figures, build configuration, compiled
 PDF when available, and a JSON manifest. It never uploads files and never
-overwrites an existing package.
+overwrites an existing package. Dependency collection preflights generated
+root filenames before copying, rejecting conflicts instead of replacing a
+flattened document, normalized configuration, compiled bibliography, or manifest.
+The arXiv worksheet tracks abstract delimiter positions within each line and
+publishes only a completely closed abstract.
 
 ---
 

@@ -81,26 +81,31 @@ kicho_submit_extract_metadata() {
             }
         }
 
-        {
-            if (in_abstract) {
-                if ($0 ~ /^[[:space:]]*\\end\{abstract\}/) {
-                    in_abstract = 0
-                } else {
-                    if (abstract != "") abstract = abstract "\n"
-                    abstract = abstract $0
-                }
-                next
-            }
-
-            if ($0 ~ /^[[:space:]]*\\begin\{abstract\}/) {
+        function consume_abstract(text,    fragment) {
+            if (!in_abstract) {
+                if (!match(text, /\\begin[[:space:]]*\{abstract\}/)) return 0
+                text = substr(text, RSTART + RLENGTH)
+                abstract_buffer = ""
                 in_abstract = 1
-                next
             }
+            if (match(text, /\\end[[:space:]]*\{abstract\}/)) {
+                fragment = substr(text, 1, RSTART - 1)
+                if (abstract_buffer != "") abstract_buffer = abstract_buffer "\n"
+                abstract = trim(abstract_buffer fragment)
+                in_abstract = 0
+            } else {
+                if (abstract_buffer != "") abstract_buffer = abstract_buffer "\n"
+                abstract_buffer = abstract_buffer text
+            }
+            return 1
+        }
 
+        {
             if (active != "") {
                 continue_command($0)
                 next
             }
+            if (consume_abstract($0)) next
 
             consume_command($0, "title", "title")
             consume_command($0, "author", "author")

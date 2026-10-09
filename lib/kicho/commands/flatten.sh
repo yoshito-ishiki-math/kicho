@@ -97,36 +97,26 @@ kicho_flatten_resolve_path() {
     printf '%s\n' "$resolved_path"
 }
 
-kicho_flatten_file() {
+kicho_flatten_file() (
     local source_file="$1"
     local project_root="$2"
     local stack="$3"
     local line
     local reference
     local resolved_path
-    local literal_environment=""
-    local active_line
+    local active_line literal_mask
+    local include_pattern='^[[:space:]]*\\include\{'
+
+    literal_mask="$(mktemp "${TMPDIR:-/tmp}/kicho-literal-mask.XXXXXX")" || return 1
+    trap 'rm -f -- "$literal_mask"' EXIT
+    if ! kicho_tex_nonliteral_file "$source_file" > "$literal_mask"; then
+        return 1
+    fi
 
     while IFS= read -r line || [[ -n "$line" ]]; do
-        if [[ -n "$literal_environment" ]]; then
-            printf '%s\n' "$line"
-            if [[ "$line" == *"\end{$literal_environment}"* ]]; then
-                literal_environment=""
-            fi
-            continue
-        fi
-
-        active_line="$(kicho_tex_strip_comment "$line")"
-        if literal_environment="$(kicho_tex_literal_environment "$active_line")"; then
-            printf '%s\n' "$line"
-            if [[ "$line" == *"\end{$literal_environment}"* ]]; then
-                literal_environment=""
-            fi
-            continue
-        fi
-
+        IFS= read -r active_line <&3 || [[ -n "$active_line" ]]
         reference=""
-        if reference="$(kicho_flatten_reference "$line")"; then
+        if [[ "$active_line" == "$line" ]] && reference="$(kicho_flatten_reference "$line")"; then
             if ! resolved_path="$(kicho_flatten_resolve_path "$reference" "$project_root")"; then
                 return 1
             fi
@@ -136,23 +126,24 @@ kicho_flatten_file() {
                 return 1
             fi
 
+            if [[ "$line" =~ $include_pattern ]]; then
+                printf '\\clearpage\n'
+            fi
             if ! kicho_flatten_file \
                 "$resolved_path" \
                 "$project_root" \
                 "$stack$resolved_path|"; then
                 return 1
             fi
+            if [[ "$line" =~ $include_pattern ]]; then
+                printf '\\clearpage\n'
+            fi
         else
             printf '%s\n' "$line"
         fi
-    done < "$source_file"
-
-    if [[ -n "$literal_environment" ]]; then
-        kicho_error "unclosed literal environment '$literal_environment' in '$source_file'."
-        return 1
-    fi
+    done < "$source_file" 3< "$literal_mask"
     return 0
-}
+)
 
 kicho_flatten_write() {
     local destination="$1"

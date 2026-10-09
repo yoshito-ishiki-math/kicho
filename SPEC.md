@@ -632,6 +632,8 @@ sources are rejected.
 
 The marker name must match `[a-z0-9][a-z0-9-]*`. Each opening marker must have
 one closing marker, blocks cannot be nested, and names cannot be repeated.
+Markers inside the known literal environments listed under `flatten` are ignored;
+those examples are copied unchanged with their containing source block.
 
 After a successful split, the marked block is replaced with:
 
@@ -642,7 +644,9 @@ After a successful split, the marked block is replaced with:
 and its contents are written to `sections/introduction.tex`. Kicho validates all
 markers and destinations before changing the project, refuses to overwrite an
 existing section file, and saves the original beside the source file with a
-`.kicho-backup` suffix.
+`.kicho-backup` suffix. If a later copy fails, rollback removes every section
+file created by that invocation, including a partially written current file,
+and restores the source. Pre-existing section files are never removed.
 
 ---
 
@@ -653,7 +657,10 @@ Create `dist/main.tex` without modifying the project source.
 The command recursively expands `\input{...}` and `\include{...}` statements
 that occupy a complete source line. A missing file, an include cycle, an
 absolute path, or a path containing a `..` component is an error. `.tex` is
-appended when the referenced path has no extension.
+appended when the referenced path has no extension. Expanded `\include` commands
+retain their leading and trailing `\clearpage` operations; `\input` expansion
+does not add page breaks. TeX conditionals and per-include auxiliary checkpoints
+remain outside the literal expansion contract.
 
 Kicho refuses to overwrite an existing `dist/main.tex`, including a dangling
 symbolic link, and rejects a symbolic-link `dist` directory.
@@ -662,7 +669,10 @@ Literal blocks in `verbatim`, `verbatim*`, `Verbatim`, `Verbatim*`,
 `BVerbatim`, `LVerbatim`, `lstlisting`, and `minted` environments are copied
 without expanding their contents. An unclosed literal block is an error.
 Custom verbatim environments and arbitrary TeX macro parsing are unsupported.
-The same protection applies to both submission modes.
+The same protection applies to both submission modes. Literal masking preserves
+active text before an opening delimiter and after a closing delimiter on the
+same line, and supports delimiters whose command and argument span lines.
+Dependency checking and cleaning use that same mask.
 
 ---
 
@@ -692,7 +702,13 @@ is `submission/`. `--output DIRECTORY` selects another relative directory
 inside the project, for example `submissions/revision-2/`. Absolute paths,
 parent (`..`) components, and paths that resolve outside the project through a
 symbolic link are rejected. Kicho creates missing parent directories but never
-overwrites the selected destination.
+overwrites the selected destination. Dependencies that collide with generated
+root output names stop submission before publication: `main.tex` and `main.bbl`
+for arXiv, and `main.tex`, `main.pdf`, `kicho.conf`, and `manifest.json` for standard
+submission. The selected original main file is already represented by the
+flattened output and is not copied over it. Rename a conflicting dependency
+before submitting; Kicho does not rewrite its references. Reserved root filenames
+are compared without ASCII case distinctions for portable exports.
 
 `--build` runs `kicho build` before collecting the package and stops if the
 build fails. It refreshes the working PDF, BBL, and recorder file without
@@ -726,7 +742,10 @@ the flattened source, saves that draft in the project root, and places a copy
 beside the ZIP. Comments, inline verbatim examples, and known literal blocks
 are excluded using the same active-source filter as dependency discovery.
 Extraction is deliberately best-effort: fields that cannot be
-read are marked for manual completion. Kicho warns about incomplete fields,
+read are marked for manual completion. Abstract text is bounded by its opening
+and closing delimiters even when both occur on one line; an unclosed abstract
+is marked for manual completion instead of absorbing subsequent body text.
+Kicho warns about incomplete fields,
 non-ASCII characters, and abstracts over 1920 characters. The metadata file is
 not part of the arXiv upload archive.
 

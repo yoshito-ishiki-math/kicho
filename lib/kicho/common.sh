@@ -7,67 +7,15 @@ kicho_error() {
     printf 'Error: %s\n' "$1" >&2
 }
 
-# Mask comments and inline literal examples without changing character offsets.
-kicho_tex_strip_comment() {
-    local text="$1" result="" character delimiter literal
-    local verb_pattern='^\\verb\*?([^a-zA-Z])'
-    while [[ -n "$text" ]]; do
-        if [[ "$text" == '\verb'* && "$text" =~ $verb_pattern ]]; then
-            literal="${BASH_REMATCH[0]}"
-            delimiter="${BASH_REMATCH[1]}"
-            text="${text:${#literal}}"
-            result+="${literal//?/ }"
-            while [[ -n "$text" ]]; do
-                character="${text:0:1}"
-                text="${text:1}"
-                result+=' '
-                [[ "$character" == "$delimiter" ]] && break
-            done
-            continue
-        fi
-        character="${text:0:1}"
-        text="${text:1}"
-        case "$character" in
-            '%') break ;;
-            \\)
-                result+="$character"
-                if [[ -n "$text" ]]; then
-                    result+="${text:0:1}"
-                    text="${text:1}"
-                fi
-                ;;
-            *) result+="$character" ;;
-        esac
-    done
-    printf '%s\n' "$result"
-}
-
 # Produce only active text for static consumers, retaining one line per source line.
 kicho_tex_active_file() {
-    local line active environment=""
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        if [[ -n "$environment" ]]; then
-            [[ "$line" == *"\end{$environment}"* ]] && environment=""
-            printf '\n'
-            continue
-        fi
-        active="$(kicho_tex_strip_comment "$line")"
-        if environment="$(kicho_tex_literal_environment "$active")"; then
-            [[ "$line" == *"\end{$environment}"* ]] && environment=""
-            printf '\n'
-        else
-            printf '%s\n' "$active"
-        fi
-    done < "$1"
+    LC_ALL=C awk -f "$KICHO_LIB_DIR/tex-active.awk" "$1"
 }
 
-kicho_tex_literal_environment() {
-    local pattern='\\begin[[:space:]]*\{(verbatim\*?|Verbatim\*?|BVerbatim|LVerbatim|lstlisting|minted)\}'
-    if [[ "$1" =~ $pattern ]]; then
-        printf '%s\n' "${BASH_REMATCH[1]}"
-        return 0
-    fi
-    return 1
+# Keep marker comments visible while masking literal ranges for transformations.
+kicho_tex_nonliteral_file() {
+    LC_ALL=C awk -v keep_comments=1 -v require_closed=1 \
+        -f "$KICHO_LIB_DIR/tex-active.awk" "$1"
 }
 
 kicho_show_version() {
