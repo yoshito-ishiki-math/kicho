@@ -62,6 +62,10 @@ kicho_flatten_resolve_path() {
         *) reference+=".tex" ;;
     esac
 
+    if kicho_path_has_symlink_component "$reference"; then
+        kicho_error "flatten does not follow symbolic-link inputs: '$reference'."
+        return 1
+    fi
     local directory="${reference%/*}"
     local filename="${reference##*/}"
     if [[ "$directory" == "$reference" ]]; then

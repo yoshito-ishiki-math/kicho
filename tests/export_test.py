@@ -176,6 +176,185 @@ printf '%s\n\n' "LaTeX Warning: Citation 'missing' undefined on input line 1." >
         self.assertEqual((self.root / "build/authored.tex").read_text(), "PRESERVE")
         self.assertIn("contains source files", result.stderr)
 
+    def test_clean_protects_referenced_figures_and_recorded_data(self):
+        env = self.fake("latexmk", "touch called-clean\nexit 0\n")
+        for name, source, recorder in (
+                ("build/original.pdf", "\\includegraphics{build/original.pdf}\n", ""),
+                ("build/input.csv", "Body.\n", f"PWD {self.root}\nINPUT build/input.csv\n")):
+            with self.subTest(name=name):
+                self.write(name, "ORIGINAL")
+                self.write("main.tex", source)
+                self.write("build/main.fls", recorder)
+                result = self.cli("clean", env=env)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertFalse((self.root / "called-clean").exists())
+                self.assertEqual((self.root / name).read_text(), "ORIGINAL")
+
+    def test_clean_preserves_unknown_files_and_populated_caches(self):
+        names = ("build/notes.md", "build/data.csv", "build/texmf-var/cache.dat")
+        for name in names:
+            self.write(name, "PRESERVE")
+        self.write("build/main.aux", "GENERATED")
+        result = self.cli("clean", env=self.fake("latexmk", "rm -f build/main.aux\n"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / "build/main.aux").exists())
+        for name in names:
+            self.assertEqual((self.root / name).read_text(), "PRESERVE")
+        self.assertIn("Retained", result.stdout)
+
+    def test_clean_removes_only_empty_build_directories(self):
+        (self.root / "build/texmf-var/empty").mkdir(parents=True)
+        result = self.cli("clean", env=self.fake("latexmk", "exit 0\n"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / "build").exists())
+
+    def test_multiline_dependencies_are_exported_without_recorder(self):
+        self.write("main.tex", "\\documentclass\n{classes/local}\n"
+                   "\\usepackage[\nexample=true\n]\n{styles/local}\n"
+                   "\\includegraphics*\n[width=2mm]\n{assets/plot}\n"
+                   "\\input\n{parts/body}\n\\bibliography\n{bib/references}\n")
+        files = {"classes/local.cls": "\\LoadClass{article}\n",
+                 "styles/local.sty": "\\input\n{data/style-body}\n",
+                 "data/style-body.tex": "STYLE BODY", "parts/body.tex": "BODY",
+                 "assets/plot.pdf": "FIGURE"}
+        for name, text in files.items():
+            self.write(name, text)
+        self.write("bib/references.bib", "BIBLIOGRAPHY")
+        self.write("build/main.bbl", "COMPILED BIBLIOGRAPHY")
+        result = self.cli("check", "--json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)["warnings"], 0)
+        result = self.cli("submit")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for name, text in files.items():
+            self.assertEqual((self.root / 'submission' / name).read_text(), text)
+        result = self.cli("submit", "--arxiv", "--output", "arxiv-export")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with zipfile.ZipFile(self.root / "arxiv-export/arxiv-source.zip") as archive:
+            for name, text in files.items():
+                self.assertEqual(archive.read(name).decode(), text)
+            self.assertEqual(archive.read('main.bbl'), b'COMPILED BIBLIOGRAPHY')
+
+    def test_multiline_missing_reference_uses_command_opening_line(self):
+        self.write("main.tex", "Body.\n\\includegraphics\n[width=2mm]\n{assets/missing}\n")
+        result = self.cli("check", "--json")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        record = json.loads(result.stdout)["diagnostics"][0]
+        self.assertEqual((record["file"], record["line"]), ("main.tex", 2))
+
+    def test_graphicspath_restores_nested_groups_and_environments(self):
+        self.write("outer images/one.pdf", "OUTER")
+        self.write("inner/two.pdf", "INNER")
+        self.write("deep/three.pdf", "DEEP")
+        for opening, closing in (("{", "}"), ("\\begingroup", "\\endgroup"),
+                                 ("\\begin{minipage}", "\\end{minipage}")):
+            with self.subTest(opening=opening):
+                self.write("main.tex", "\\graphicspath{{outer images/}}\n" + opening +
+                           "\\graphicspath{{inner/}}\\includegraphics{two}\n"
+                           "{\\graphicspath{{deep/}}\\includegraphics{three}}\n"
+                           "\\includegraphics{two}" + closing + "\\includegraphics{one}\n")
+                result = self.cli("check", "--json")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.cli("submit", "--arxiv")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with zipfile.ZipFile(self.root / "submission/arxiv-source.zip") as archive:
+            self.assertEqual(archive.read("outer images/one.pdf"), b"OUTER")
+            self.assertEqual(archive.read("inner/two.pdf"), b"INNER")
+            self.assertEqual(archive.read("deep/three.pdf"), b"DEEP")
+
+    def test_groups_cross_inputs_and_restore_dynamic_search_state(self):
+        self.write("outer/one.pdf", "OUTER")
+        self.write("inner/two.pdf", "INNER")
+        self.write("parts/open.tex", "{\\graphicspath{{inner/}}\n")
+        self.write("parts/close.tex", "}\n")
+        self.write("main.tex", "\\graphicspath{{outer/}}\\input{parts/open}"
+                   "\\includegraphics{two}\\input{parts/close}\\includegraphics{one}\n"
+                   "{\\graphicspath{\\unknown}\\includegraphics{unknown}}"
+                   "\\includegraphics{one}\n")
+        result = self.cli("check", "--json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)["errors"], 0)
+        self.assertGreaterEqual(json.loads(result.stdout)["warnings"], 2)
+
+    def test_directory_symlinks_are_rejected_without_publication(self):
+        source = self.write("data/body.tex", "LIVE BODY")
+        (self.root / "alias").symlink_to('data', target_is_directory=True)
+        self.write("main.tex", "\\input{alias/body}\n")
+        for args in (("check", "--json"), ("flatten",), ("submit",), ("submit", "--arxiv")):
+            result = self.cli(*args)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("symbolic", result.stdout + result.stderr)
+        self.assertEqual(source.read_text(), "LIVE BODY")
+        self.assertFalse((self.root / 'submission').exists())
+        self.assertFalse((self.root / 'dist/main.tex').exists())
+
+    def test_arxiv_rejects_a_linked_figure_directory(self):
+        self.write("data/body.tex", "LIVE BODY")
+        (self.root / "figures").rmdir()
+        (self.root / "figures").symlink_to('data', target_is_directory=True)
+        self.write("main.tex", "Before \\input{figures/body} after.\n")
+        result = self.cli('submit', '--arxiv')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('symbolic link', result.stderr)
+        self.assertFalse((self.root / 'submission').exists())
+        self.assertFalse((self.root / 'arxiv-metadata.txt').exists())
+
+    def test_metadata_ignores_comments_inline_examples_and_literal_blocks(self):
+        self.write("main.tex", r'''\title{Actual \% title}
+% \title{Old title}
+\author{Correct Author}
+% \author{Discarded Author}
+Example: \verb|\title{Example title}|.
+\begin{verbatim}
+\author{Example Author}
+\title{Literal title}
+\end{verbatim}
+\begin{abstract}
+Actual abstract. % discarded note
+\end{abstract}
+''')
+        result = self.cli('submit', '--arxiv')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        metadata = (self.root / 'arxiv-metadata.txt').read_text()
+        self.assertIn('Actual \\% title', metadata)
+        self.assertIn('Correct Author', metadata)
+        self.assertIn('Actual abstract.', metadata)
+        for ignored in ('Old title', 'Discarded Author', 'Example title', 'Example Author',
+                        'Literal title', 'discarded note'):
+            self.assertNotIn(ignored, metadata)
+        self.write('arxiv-metadata.txt', 'OWNER MAINTAINED\n')
+        result = self.cli('submit', '--arxiv', '--output', 'second-arxiv')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'second-arxiv/arxiv-metadata.txt').read_text(),
+                         'OWNER MAINTAINED\n')
+
+    def test_unserializable_outer_whitespace_is_rejected_before_writes(self):
+        self.write(' paper.tex', 'LIVE SOURCE')
+        env = self.fake('latexmk', 'touch called-build\nexit 0\n')
+        for args in (('--main', ' paper.tex', 'archive'),
+                     ('--main', './ paper.tex', 'archive'),
+                     ('--build-dir', 'output ', 'build'),
+                     ('--build-dir', './ output', 'build')):
+            result = self.cli(*args, env=env)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn('whitespace', result.stderr)
+        for key, value in (('KICHO_MAIN', ' paper.tex'), ('KICHO_BUILD_DIR', ' output')):
+            result = self.cli('archive', env=dict(os.environ, **{key: value}))
+            self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.root / 'archives').exists())
+        self.assertFalse((self.root / 'called-build').exists())
+        self.assertEqual((self.root / ' paper.tex').read_text(), 'LIVE SOURCE')
+
+    def test_archive_internal_spaces_round_trip_without_option_overrides(self):
+        self.write('draft/ paper.tex', 'ARCHIVED SOURCE')
+        result = self.cli('--main', 'draft/ paper.tex', '--build-dir', 'output files', 'archive')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        source = next((self.root / 'archives').glob('*/source'))
+        self.assertEqual((source / 'draft/ paper.tex').read_text(), 'ARCHIVED SOURCE')
+        result = subprocess.run(['/bin/bash', str(ROOT / 'bin/kicho'), 'check', '--json'],
+                                cwd=source, capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_manifest_hashes_cover_final_files_and_do_not_touch_the_live_pdf(self):
         self.write("build/main.pdf", "ORIGINAL PDF")
         before = (self.root / "build/main.pdf").read_bytes()

@@ -40,6 +40,10 @@ kicho_collect_recorded_dependencies() {
             kicho_error "unsafe recorded dependency: '$relative'."
             return 1
         fi
+        if kicho_path_has_symlink_component "$relative"; then
+            kicho_error "recorded dependency is a symbolic link: '$relative'."
+            return 1
+        fi
         directory="$(dirname "$relative")"
         if ! physical_directory="$(cd -- "$directory" 2>/dev/null && pwd -P)"; then
             printf "Warning: recorded dependency was not found: '%s'; run 'kicho build' to refresh it.\n" "$relative" >&2
@@ -70,6 +74,7 @@ kicho_dependencies_collect() {
     local KICHO_SOURCE_DIAGNOSTICS=() KICHO_SOURCE_FILES=() KICHO_SOURCE_KINDS=()
     local KICHO_SOURCE_ERRORS=0 KICHO_SOURCE_WARNINGS=0 KICHO_SOURCE_USES_BIBLIOGRAPHY=false
     local KICHO_SOURCE_GRAPHICS_PATHS=() KICHO_SOURCE_GRAPHICS_DYNAMIC=false
+    local KICHO_SOURCE_GROUP_COUNTS=() KICHO_SOURCE_GROUP_PATHS=() KICHO_SOURCE_GROUP_DYNAMIC=()
     local KICHO_RECORDED_FILES=()
     kicho_source_init
     if [[ -f "$KICHO_MAIN" ]]; then
@@ -144,10 +149,18 @@ kicho_submit_warn_stale_output() {
 # restore any hidden file actually used by TeX, without exporting hidden junk.
 kicho_copy_visible_figures() {
     local destination="$1" file relative
+    if [[ -L figures ]]; then
+        kicho_error "figure directory is a symbolic link: 'figures'."
+        return 1
+    fi
     [[ -d figures ]] || return 0
     mkdir -p "$destination/figures" || return 1
     while IFS= read -r -d '' file; do
         relative="${file#./}"
+        if kicho_path_has_symlink_component "$relative"; then
+            kicho_error "figure path is a symbolic link: '$relative'."
+            return 1
+        fi
         kicho_prepare_dependency_destination "$destination" "$relative" || return 1
         cp -R "$file" "$destination/$relative" || return 1
     done < <(find figures -name '.*' -prune -o \( -type f -o -type l \) -print0)

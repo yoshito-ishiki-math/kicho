@@ -254,8 +254,11 @@ latexmk -C -outdir=build -auxdir=build main.tex
 
 The command does not accept arguments.
 
-It then removes the selected generated directory (default `build/`). It refuses
-to remove a directory containing `.tex`, `.bib`, `.sty`, `.cls`, or `.bst` sources.
+Before invoking latexmk, cleaning refuses a directory containing authored TeX,
+bibliography, or style files, or any known source dependency (including figures
+and recorder-only data). After latexmk succeeds, Kicho removes only empty build
+directories. It never recursively deletes the selected directory: other files
+and populated LuaTeX caches are retained. A retained directory is reported.
 
 Source files such as the following must not be removed:
 
@@ -335,8 +338,13 @@ each line are checked. Escaped percent signs
 (`\%`) are retained; only unescaped percent signs start comments. The check
 is static and does not replace a real LaTeX build. Diagnostics for source
 references include the project-relative filename and a one-based line number.
-Literal graphicspath lists may span lines; macro-generated search paths produce
-a warning instead of a false missing-figure error.
+Supported literal command arguments and optional arguments may span lines;
+diagnostics retain the command opening line. Graphicspath settings follow
+explicit brace groups, `\begingroup` / `\endgroup`, and literal environments,
+including groups that cross input-file boundaries. Macro-generated search paths
+produce a warning instead of a false missing-figure error. This bounded scanner
+does not evaluate macro definitions or conditionals. Symbolic links in any
+reference path component are rejected.
 
 `--json` writes only a JSON object to stdout, with `schema_version: 1`, numeric
 `errors` and `warnings`, and a `diagnostics` array. Each diagnostic has `severity`
@@ -451,7 +459,7 @@ In the current implementation, a directory is considered a Kicho project when it
 
 This is intentionally a minimal rule.
 
-A future release may introduce a dedicated Kicho configuration file, potentially named:
+A future release may introduce a general configuration format, potentially named:
 
 ```text
 kicho.toml
@@ -465,7 +473,8 @@ Such a file could identify the project explicitly and store settings such as:
 - archive behavior
 - submission settings
 
-The dedicated configuration format is not part of the current specification.
+General TOML configuration is deferred. The current literal `kicho.conf` path
+settings are specified below.
 
 ---
 
@@ -714,7 +723,9 @@ When a project-root `arxiv-metadata.txt` exists, it is the user-maintained
 source of truth and is copied unchanged. Otherwise Kicho creates a draft from
 simple `\title`, `\author`, `abstract`, `\subjclass`, and `\keywords` forms in
 the flattened source, saves that draft in the project root, and places a copy
-beside the ZIP. Extraction is deliberately best-effort: fields that cannot be
+beside the ZIP. Comments, inline verbatim examples, and known literal blocks
+are excluded using the same active-source filter as dependency discovery.
+Extraction is deliberately best-effort: fields that cannot be
 read are marked for manual completion. Kicho warns about incomplete fields,
 non-ASCII characters, and abstracts over 1920 characters. The metadata file is
 not part of the arXiv upload archive.
@@ -759,7 +770,10 @@ blocks are ignored when discovering references and bibliography usage.
 `kicho.conf` is an optional UTF-8 project-root file with literal `key = value`
 lines. Supported keys are `main` (default `main.tex`) and `build_dir` (default
 `build`). Empty lines and full-line `#` comments are allowed. Values are unquoted
-relative paths; spaces are allowed and quote characters are literal. Unknown or duplicate keys, empty values,
+relative paths; internal spaces are allowed and quote characters are literal.
+Normalized command-line and environment paths with leading or trailing
+whitespace are rejected so saved configurations preserve the same path.
+Unknown or duplicate keys, empty values,
 absolute paths, parent components, and symlink path components are errors.
 The main path must end in `.tex`; the build directory must not be the project
 root, a source ancestor, or a reserved Kicho/Git output directory.

@@ -34,6 +34,14 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Fixed
 
+- Preserve referenced figures, recorded data, other files, and populated caches
+  during cleaning; prune only empty generated directories after latexmk
+- Collect multiline literal dependencies and restore graphics search paths after
+  explicit groups and environments, including groups spanning input files
+- Reject directory symlinks in source and recorder references and arXiv figures
+- Ignore comments and literal examples when extracting arXiv metadata
+- Reject path overrides whose outer whitespace cannot survive configuration storage
+
 - Keep explicitly referenced hidden files in arXiv ZIPs while excluding unrelated
   hidden figure files; compile extracted ZIPs in real-template smoke tests
 - Process supported static commands in source order, including repeated inputs

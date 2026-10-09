@@ -174,6 +174,7 @@ mkdir -p "$fake_bin"
     printf '#!/usr/bin/env bash\n'
     printf 'printf "%%s\\n" "$*" >> "$KICHO_TEST_LATEXMK_LOG"\n'
     printf 'printf "TEXMFVAR=%%s\\n" "${TEXMFVAR:-}" >> "$KICHO_TEST_LATEXMK_LOG"\n'
+    printf 'if [[ "$1" == -C && "${KICHO_TEST_LATEXMK_STATUS:-0}" == 0 ]]; then rm -f build/generated.aux; fi\n'
     printf 'exit "${KICHO_TEST_LATEXMK_STATUS:-0}"\n'
 } > "$fake_bin/latexmk"
 chmod +x "$fake_bin/latexmk"
@@ -234,7 +235,9 @@ run_in "$project" env \
     "$KICHO" clean
 assert_status 0 'clean with latexmk'
 assert_contains 'Clean completed successfully.' "$command_stdout" 'clean success output'
-assert_not_exists "$project/build" 'successful clean removes build directory'
+assert_not_exists "$project/build/generated.aux" 'successful clean removes generated output'
+assert_file "$project/build/.gitkeep" 'successful clean retains build placeholder'
+assert_not_exists "$project/build/texmf-var" 'successful clean prunes empty cache directory'
 assert_contains '-C' "$latexmk_log" 'clean invokes latexmk -C'
 
 for command in flatten submit; do

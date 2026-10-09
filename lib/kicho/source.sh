@@ -11,6 +11,9 @@ kicho_source_init() {
     KICHO_SOURCE_DIAGNOSTICS=()
     KICHO_SOURCE_GRAPHICS_PATHS=()
     KICHO_SOURCE_GRAPHICS_DYNAMIC=false
+    KICHO_SOURCE_GROUP_COUNTS=()
+    KICHO_SOURCE_GROUP_PATHS=()
+    KICHO_SOURCE_GROUP_DYNAMIC=()
     KICHO_SOURCE_USES_BIBLIOGRAPHY=false
     KICHO_SOURCE_FILE=''
     KICHO_SOURCE_LINE=0
@@ -130,6 +133,10 @@ kicho_source_resolve_reference() {
             kicho_source_fail "unsafe $kind search path: '$candidate'."
             return 1
         fi
+        if kicho_path_has_symlink_component "$candidate"; then
+            kicho_source_fail "$kind reference is a symbolic link: '$candidate'."
+            return 1
+        fi
         directory="${candidate%/*}"
         filename="${candidate##*/}"
         [[ "$directory" != "$candidate" ]] || directory='.'
@@ -198,32 +205,26 @@ kicho_source_scan_graphicspath() {
 }
 
 kicho_source_scan_local_styles() {
-    local line="$1" command value reference prepared kind
-    local pattern='\\(usepackage|RequirePackageWithOptions|RequirePackage|documentclass|LoadClassWithOptions|LoadClass|bibliographystyle)([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
+    local command="$1" value="$2" reference prepared kind
     local references=()
-    while [[ "$line" =~ $pattern ]]; do
-        command="${BASH_REMATCH[1]}"
-        value="${BASH_REMATCH[3]}"
-        line="${line#*"${BASH_REMATCH[0]}"}"
-        case "$command" in
-            documentclass|LoadClass*) kind=class ;;
-            bibliographystyle) kind=bst ;;
-            *) kind=package ;;
-        esac
-        IFS=',' read -r -a references <<< "$value"
-        for reference in "${references[@]}"; do
-            reference="${reference#"${reference%%[![:space:]]*}"}"
-            reference="${reference%"${reference##*[![:space:]]}"}"
-            prepared="$(kicho_source_prepare_reference "$reference" "$kind")"
-            # Bare names absent from the project belong to the TeX installation.
-            if [[ "$reference" != */* && ! -e "$prepared" && ! -L "$prepared" ]]; then
-                continue
-            fi
-            if kicho_source_resolve_reference "$reference" "$kind"; then
-                kicho_source_ok "$kind: $reference"
-                [[ "$kind" == bst ]] || kicho_source_scan_tex_file "$KICHO_SOURCE_RESOLVED" "$kind"
-            fi
-        done
+    case "$command" in
+        documentclass|LoadClass*) kind=class ;;
+        bibliographystyle) kind=bst ;;
+        *) kind=package ;;
+    esac
+    IFS=',' read -r -a references <<< "$value"
+    for reference in "${references[@]}"; do
+        reference="${reference#"${reference%%[![:space:]]*}"}"
+        reference="${reference%"${reference##*[![:space:]]}"}"
+        prepared="$(kicho_source_prepare_reference "$reference" "$kind")"
+        # Bare names absent from the project belong to the TeX installation.
+        if [[ "$reference" != */* && ! -e "$prepared" && ! -L "$prepared" ]]; then
+            continue
+        fi
+        if kicho_source_resolve_reference "$reference" "$kind"; then
+            kicho_source_ok "$kind: $reference"
+            [[ "$kind" == bst ]] || kicho_source_scan_tex_file "$KICHO_SOURCE_RESOLVED" "$kind"
+        fi
     done
     return 0
 }
@@ -246,17 +247,30 @@ kicho_source_scan_bibliography() {
     done
 }
 
+# Group state is shared across recursive inputs because TeX groups may start
+# and end in different files. Path counts preserve spaces without delimiters.
+kicho_source_push_group() {
+    KICHO_SOURCE_GROUP_COUNTS+=("${#KICHO_SOURCE_GRAPHICS_PATHS[@]}")
+    KICHO_SOURCE_GROUP_PATHS+=("${KICHO_SOURCE_GRAPHICS_PATHS[@]}")
+    KICHO_SOURCE_GROUP_DYNAMIC+=("$KICHO_SOURCE_GRAPHICS_DYNAMIC")
+}
+
+kicho_source_pop_group() {
+    local last count offset
+    last=$((${#KICHO_SOURCE_GROUP_COUNTS[@]} - 1))
+    [[ "$last" -ge 0 ]] || return 0
+    count="${KICHO_SOURCE_GROUP_COUNTS[$last]}"
+    offset=$((${#KICHO_SOURCE_GROUP_PATHS[@]} - count))
+    KICHO_SOURCE_GRAPHICS_PATHS=("${KICHO_SOURCE_GROUP_PATHS[@]:offset:count}")
+    KICHO_SOURCE_GRAPHICS_DYNAMIC="${KICHO_SOURCE_GROUP_DYNAMIC[$last]}"
+    KICHO_SOURCE_GROUP_PATHS=("${KICHO_SOURCE_GROUP_PATHS[@]:0:offset}")
+    unset 'KICHO_SOURCE_GROUP_COUNTS[last]' 'KICHO_SOURCE_GROUP_DYNAMIC[last]'
+}
+
 # Bibliography-use state is consumed by dependencies.sh.
 # shellcheck disable=SC2034
 kicho_source_scan_tex_file() {
-    local source_file="$1" edge_kind="${2:-input}" line remaining candidate command matched value
-    local command_pattern='\\(graphicspath|includegraphics|input|include|addbibresource|bibliography|printbibliography|RequirePackageWithOptions|RequirePackage|usepackage|LoadClassWithOptions|LoadClass|documentclass|bibliographystyle)([^[:alpha:]@]|$)'
-    local graphics_pattern='^\\graphicspath[[:space:]]*\{((\{[^{}]*\}[[:space:]]*)*)\}'
-    local graphics_dynamic='^\\graphicspath[[:space:]]*\{[^{}]*\}'
-    local reference_pattern='^\\(input|include)[[:space:]]*\{([^{}]+)\}'
-    local figure_pattern='^\\includegraphics([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
-    local bib_pattern='^\\(addbibresource|bibliography)([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
-    local style_pattern='^\\(usepackage|RequirePackageWithOptions|RequirePackage|documentclass|LoadClassWithOptions|LoadClass|bibliographystyle)([[:space:]]*\[[^]]*\])?[[:space:]]*\{([^{}]+)\}'
+    local source_file="$1" edge_kind="${2:-input}" command value
     if [[ "${KICHO_SOURCE_STACK:-}" == *"|$source_file|"* && "$edge_kind" == input ]]; then
         kicho_source_fail "input/include cycle detected at '${source_file#"$KICHO_SOURCE_ROOT/"}'."
         return 0
@@ -268,81 +282,38 @@ kicho_source_scan_tex_file() {
     KICHO_SOURCE_VISITED+="|$source_file|"
     local KICHO_SOURCE_STACK="${KICHO_SOURCE_STACK:-}|$source_file|"
     local KICHO_SOURCE_FILE="$source_file" KICHO_SOURCE_LINE=0
-    local graphics_pending='' graphics_start=0
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        KICHO_SOURCE_LINE=$((KICHO_SOURCE_LINE + 1))
-        remaining="$line"
-        if [[ -n "$graphics_pending" ]]; then
-            remaining="$graphics_pending $line"
-            graphics_pending=''
-        fi
-        while [[ "$remaining" =~ $command_pattern ]]; do
-            command="${BASH_REMATCH[1]}"
-            matched="${BASH_REMATCH[0]}"
-            candidate="$matched${remaining#*"$matched"}"
-            # Preserve the suffix before recursion overwrites BASH_REMATCH.
-            remaining="${remaining#*"$matched"}"
-            case "$command" in
-                graphicspath)
-                    [[ "$graphics_start" -gt 0 ]] || graphics_start="$KICHO_SOURCE_LINE"
-                    if [[ "$candidate" =~ $graphics_pattern ]]; then
-                        matched="${BASH_REMATCH[0]}"
-                        remaining="${candidate#"$matched"}"
-                        kicho_source_scan_graphicspath "$matched" "$graphics_start"
-                        graphics_start=0
-                    elif [[ "$candidate" =~ $graphics_dynamic ]]; then
-                        matched="${BASH_REMATCH[0]}"
-                        remaining="${candidate#"$matched"}"
-                        KICHO_SOURCE_GRAPHICS_DYNAMIC=true
-                        KICHO_SOURCE_GRAPHICS_PATHS=()
-                        kicho_source_warn 'macro-generated graphicspath was not checked.' "$graphics_start"
-                        graphics_start=0
-                    else
-                        graphics_pending="$candidate"
-                        break
-                    fi ;;
-                input|include)
-                    if [[ "$candidate" =~ $reference_pattern ]]; then
-                        matched="${BASH_REMATCH[0]}"
-                        value="${BASH_REMATCH[2]}"
-                        remaining="${candidate#"$matched"}"
-                        if kicho_source_resolve_reference "$value" input; then
-                            kicho_source_ok "input: $value"
-                            kicho_source_scan_tex_file "$KICHO_SOURCE_RESOLVED"
-                        fi
-                    fi ;;
-                includegraphics)
-                    if [[ "$candidate" =~ $figure_pattern ]]; then
-                        matched="${BASH_REMATCH[0]}"
-                        value="${BASH_REMATCH[2]}"
-                        remaining="${candidate#"$matched"}"
-                        if kicho_source_resolve_reference "$value" figure; then
-                            kicho_source_ok "figure: $value"
-                        fi
-                    fi ;;
-                addbibresource|bibliography)
-                    KICHO_SOURCE_USES_BIBLIOGRAPHY=true
-                    if [[ "$candidate" =~ $bib_pattern ]]; then
-                        matched="${BASH_REMATCH[0]}"
-                        value="${BASH_REMATCH[3]}"
-                        remaining="${candidate#"$matched"}"
-                        kicho_source_scan_bibliography "$value"
-                    fi ;;
-                printbibliography) KICHO_SOURCE_USES_BIBLIOGRAPHY=true ;;
-                *)
-                    if [[ "$candidate" =~ $style_pattern ]]; then
-                        matched="${BASH_REMATCH[0]}"
-                        remaining="${candidate#"$matched"}"
-                        kicho_source_scan_local_styles "$matched"
-                    fi ;;
-            esac
-        done
-    done < <(kicho_tex_active_file "$source_file")
-    if [[ -n "$graphics_pending" ]]; then
-        KICHO_SOURCE_LINE="$graphics_start"
-        KICHO_SOURCE_GRAPHICS_DYNAMIC=true
-        kicho_source_warn 'unsupported or unclosed graphicspath was not checked.'
-    fi
+    while IFS=$'\t' read -r KICHO_SOURCE_LINE command value; do
+        case "$command" in
+            open) kicho_source_push_group ;;
+            close) kicho_source_pop_group ;;
+            graphicspath)
+                if ! kicho_source_scan_graphicspath "\graphicspath{$value}"; then
+                    KICHO_SOURCE_GRAPHICS_DYNAMIC=true
+                    KICHO_SOURCE_GRAPHICS_PATHS=()
+                    kicho_source_warn 'macro-generated or unsupported graphicspath was not checked.'
+                fi ;;
+            input|include)
+                if kicho_source_resolve_reference "$value" input; then
+                    kicho_source_ok "input: $value"
+                    kicho_source_scan_tex_file "$KICHO_SOURCE_RESOLVED"
+                fi ;;
+            includegraphics)
+                if kicho_source_resolve_reference "$value" figure; then
+                    kicho_source_ok "figure: $value"
+                fi ;;
+            addbibresource|bibliography)
+                KICHO_SOURCE_USES_BIBLIOGRAPHY=true
+                kicho_source_scan_bibliography "$value" ;;
+            printbibliography) KICHO_SOURCE_USES_BIBLIOGRAPHY=true ;;
+            unsupported)
+                [[ "$value" != graphicspath ]] || KICHO_SOURCE_GRAPHICS_DYNAMIC=true
+                case "$value" in
+                    addbibresource|bibliography) KICHO_SOURCE_USES_BIBLIOGRAPHY=true ;;
+                esac
+                kicho_source_warn "unsupported or unclosed $value was not checked." ;;
+            *) kicho_source_scan_local_styles "$command" "$value" ;;
+        esac
+    done < <(kicho_tex_active_file "$source_file" | LC_ALL=C awk -f "$KICHO_LIB_DIR/tex-events.awk")
     return 0
 }
 

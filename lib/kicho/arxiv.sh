@@ -133,7 +133,7 @@ kicho_submit_extract_metadata() {
             print "Keywords:"
             print keywords
         }
-    ' "$source" > "$destination"
+    ' <(kicho_tex_active_file "$source") > "$destination"
 }
 
 kicho_submit_validate_metadata() {

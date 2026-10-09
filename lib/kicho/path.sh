@@ -18,6 +18,19 @@ kicho_path_is_within_root() {
     esac
 }
 
+# Check every existing path component, including dangling directory links.
+kicho_path_has_symlink_component() {
+    local path="$1" current='.' component
+    local components=()
+    IFS='/' read -r -a components <<< "$path"
+    for component in "${components[@]}"; do
+        [[ -z "$component" || "$component" == . ]] && continue
+        current+="/$component"
+        [[ ! -L "$current" ]] || return 0
+    done
+    return 1
+}
+
 # Do not follow symlinks copied with a conventional directory into an export.
 kicho_prepare_dependency_destination() {
     local destination="$1" relative="$2" root parent component current

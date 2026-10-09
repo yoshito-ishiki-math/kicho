@@ -340,17 +340,15 @@ This provides several benefits:
 
 ## Clean Architecture
 
-The clean command currently performs two operations:
+The clean command first checks authored files and known source dependencies
+inside the selected build directory, then delegates generated-file removal to:
 
 ```text
 latexmk -C
 ```
 
-followed by removal of:
-
-```text
-build/
-```
+Kicho then prunes empty directories only. Unknown files and populated LuaTeX
+caches remain available; the build tree is never recursively deleted.
 
 The clean command must only remove generated files.
 
@@ -921,7 +919,12 @@ without preventing an explicitly selected stored edition from being inspected.
 
 `project.sh` resolves the two literal project-path settings without evaluating
 shell or Perl configuration, and centralizes main/output path validation.
-`source.sh` owns static source traversal and its diagnostic records.
+`source.sh` owns static source traversal and its diagnostic records. Its small
+`tex-events.awk` lexer consumes the shared active-source filter and emits literal
+command/group events with opening line numbers. It buffers multiline arguments
+and skips escaped braces without expanding TeX. Byte-oriented AWK scanning
+preserves UTF-8 path bytes. A graphics-state stack follows explicit groups and
+literal environments across recursive inputs; unsupported macros remain warnings.
 `dependencies.sh` combines those literal inputs with compiler recorder inputs,
 keeps the original relative paths, and owns safe copying into export trees.
 Command modules only parse command-specific options and orchestrate these
@@ -933,3 +936,8 @@ reimplements citation or label resolution. `provenance.py` uses Python's
 standard library for deterministic streaming file hashes and JSON metadata
 augmentation. Shared copy/staging helpers remain small functions, without a
 plugin framework or generic transaction system.
+
+The active-source filter also feeds metadata extraction. Path-component link
+checks are shared by project settings, source/recorder lookup, and flattening.
+Project-path validation runs before and after normalization so an export config
+can be read back without silently changing the selected path.

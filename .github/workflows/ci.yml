@@ -52,3 +52,4 @@ jobs:
         run: |
           eval "$(/usr/libexec/path_helper)"
           /bin/bash tests/template_smoke_test.sh
+          python3 tests/source_smoke_test.py

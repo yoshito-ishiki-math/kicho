@@ -68,22 +68,20 @@ kicho_project_normalize_path() {
 }
 
 kicho_project_validate_path() {
-    local path="$1" description="$2" component current='.'
-    local components=()
+    local path="$1" description="$2"
     if [[ -z "$path" || "$path" == /* || "$path" == -* || "$path" == . || "$path" == *$'\n'* || "$path" == *$'\r'* ]] ||
         kicho_path_has_parent_component "$path"; then
         kicho_error "$description must be a nonempty project-relative path without '..': '$path'."
         return 1
     fi
-    IFS='/' read -r -a components <<< "$path"
-    for component in "${components[@]}"; do
-        [[ -z "$component" || "$component" == . ]] && continue
-        current+="/$component"
-        if [[ -L "$current" ]]; then
-            kicho_error "$description does not follow symbolic links: '$path'."
-            return 1
-        fi
-    done
+    if [[ "$path" != "$(kicho_project_trim "$path")" ]]; then
+        kicho_error "$description must not have leading or trailing whitespace: '$path'."
+        return 1
+    fi
+    if kicho_path_has_symlink_component "$path"; then
+        kicho_error "$description does not follow symbolic links: '$path'."
+        return 1
+    fi
     case "/$path/" in
         */.git/*|*/.agents/*|*/.codex/*)
             kicho_error "$description uses a reserved directory: '$path'."
@@ -131,6 +129,8 @@ kicho_project_load() {
     kicho_project_validate_path "$KICHO_BUILD_DIR" 'build directory' || return 1
     KICHO_MAIN="$(kicho_project_normalize_path "$KICHO_MAIN")"
     KICHO_BUILD_DIR="$(kicho_project_normalize_path "$KICHO_BUILD_DIR")"
+    kicho_project_validate_path "$KICHO_MAIN" 'main file' || return 1
+    kicho_project_validate_path "$KICHO_BUILD_DIR" 'build directory' || return 1
     [[ -n "$KICHO_MAIN" && -n "$KICHO_BUILD_DIR" ]] || { kicho_error 'project paths must not name the project root.'; return 1; }
     if [[ "$KICHO_MAIN" != *.tex ]]; then
         kicho_error 'main file must have a .tex extension.'

@@ -30,16 +30,36 @@ kicho_command_clean() {
 
     printf 'Cleaning project...\n'
 
-    local authored
+    local authored file root
+    root="$(pwd -P)"
     if [[ -d "$KICHO_BUILD_DIR" ]]; then
-        authored="$(find "$KICHO_BUILD_DIR" -type f \( -name '*.tex' -o -name '*.bib' -o -name '*.sty' -o -name '*.cls' -o -name '*.bst' \) -print -quit)"
+        if ! authored="$(find "$KICHO_BUILD_DIR" -type f \( -name '*.tex' -o -name '*.bib' -o -name '*.sty' -o -name '*.cls' -o -name '*.bst' \) -print -quit)"; then
+            kicho_error 'could not inspect the build directory; clean refused.'
+            return 1
+        fi
         if [[ -n "$authored" ]]; then
             kicho_error "build directory contains source files; clean refused: '$authored'."
             return 1
         fi
     fi
+    kicho_dependencies_collect quiet || return 1
+    if ((KICHO_DEPENDENCY_ERRORS > 0)); then
+        kicho_error 'could not establish source dependency safety; clean refused.'
+        return 1
+    fi
+    for file in "${KICHO_DEPENDENCY_FILES[@]}"; do
+        if [[ "$file" == "$root/$KICHO_BUILD_DIR/"* ]]; then
+            kicho_error "build directory contains a source dependency; clean refused: '${file#"$root/"}'."
+            return 1
+        fi
+    done
     if latexmk -C "-outdir=$KICHO_BUILD_DIR" "-auxdir=$KICHO_BUILD_DIR" "$KICHO_MAIN"; then
-        rm -rf -- "$KICHO_BUILD_DIR"
+        if [[ -d "$KICHO_BUILD_DIR" ]]; then
+            find "$KICHO_BUILD_DIR" -depth -type d -empty -exec rmdir {} \; || return 1
+            if [[ -d "$KICHO_BUILD_DIR" ]]; then
+                printf 'Retained other files or cached data in %s.\n' "$KICHO_BUILD_DIR"
+            fi
+        fi
         printf 'Clean completed successfully.\n'
     else
         local status=$?
