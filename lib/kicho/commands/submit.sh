@@ -13,6 +13,7 @@ Usage:
 
 Create a local submission package without uploading it.
 Paragraph IDs, editorial notes, and showkeys are disabled in the release copy.
+Pending proofreading corrections block submission; record author approval first.
 A marked standard submission rebuilds its PDF using latexmk. Requires Python 3.9+.
 
 Options:

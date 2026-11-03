@@ -23,6 +23,7 @@ Kicho currently implements:
 - [x] macOS GitHub Actions using the system Bash 3.2
 - [x] Real LuaLaTeX smoke builds for the English and Japanese templates
 - [x] arXiv source ZIP creation with generated metadata and BBL packaging
+- [x] ID-bearing red proofreading corrections and explicit author approval
 
 ---
 
@@ -101,6 +102,14 @@ then to the stable `v0.2.0` release.
 - [x] Extend `split` to operate on a specified TeX file, not only `main.tex`
 - [ ] Preserve source files by default when combining sections
 - [ ] Refuse existing output destinations and avoid rewriting `main.tex` implicitly
+
+### Proofreading
+
+- [x] Distribute `kichoproof.sty` and generate addition/deletion/replacement snippets
+- [x] List and validate literal correction commands without editing the manuscript
+- [x] Accept selected author-approved corrections with original-source backups
+      and attributed audit records
+- [x] Refuse pending corrections in submission packages
 
 ### Archiving and Submission
 

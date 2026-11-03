@@ -47,7 +47,7 @@ for test_file in \
     fi
 done
 
-for test_file in "$TEST_DIR/paraids_test.py" "$TEST_DIR/export_test.py"; do
+for test_file in "$TEST_DIR/paraids_test.py" "$TEST_DIR/proofread_test.py" "$TEST_DIR/export_test.py"; do
     if ! python3 "$test_file"; then
         status=1
     fi

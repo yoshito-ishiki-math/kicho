@@ -27,6 +27,7 @@ and local submission packages.
 - Flatten full-line `\input` and `\include` commands with `flatten`
 - Create a local submission package with `submit`
 - Create an arXiv source ZIP and metadata worksheet with `submit --arxiv`
+- Mark corrections in red and accept author-approved changes with `proofread`
 - Show command-specific help with `help COMMAND`
 - Show command-specific help with `COMMAND --help`
 - Built-in help (`--help`)
@@ -256,3 +257,32 @@ kicho paraids check --root MyPaper
 ```
 
 `submit` and `submit --arxiv` disable IDs and red notes in their release copy; standard submission with review marks rebuilds the clean PDF. `submit --build` refreshes working outputs for either submission mode. These operations require Python 3.9 or later. See [usage](docs/paragraphids.md) and [the command specification](SPEC.md#paraids).
+
+## Proofreading corrections and author approval
+
+Install the package, add `\usepackage{kichoproof}` to the manuscript preamble,
+and generate a correction to paste into the source:
+
+```bash
+kicho proofread install --root MyPaper
+kicho proofread new --root MyPaper --kind replace --old 'Old text' --new 'New text'
+kicho proofread list --root MyPaper
+kicho proofread check --root MyPaper
+```
+
+Corrections show red text and their IDs in the PDF. To record author approval,
+use the ID printed by `new` or `list`:
+
+```bash
+kicho proofread approve r-0123456789ab --author 'Author Name' --root MyPaper
+cd MyPaper
+kicho build
+```
+
+Approval replaces the selected annotation with accepted text and preserves the
+original source and an attributed audit record under `archives/proofread/`.
+Other corrections stay red. Both submission modes refuse pending corrections.
+The commands inspect literal source, do not expand TeX macros, and do not
+authenticate the approving author's name. Requires Python 3.9+.
+See [the workflow and supported syntax](docs/proofread.md) and
+[the command specification](SPEC.md#proofread).

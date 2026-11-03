@@ -6,6 +6,12 @@ All notable user-visible changes to Kicho are documented in this file.
 
 ### Added
 
+- Add `proofread install/new/list/check/approve` and `kichoproof.sty` for red
+  additions, deletions, and replacements with correction IDs
+- Accept selected author-approved corrections into ordinary source text while
+  preserving originals, hashes, correction contents, and attributed audit records
+- Refuse pending corrections in both submission modes and rebuild approved
+  standard submissions from their cleaned source rather than copying a red PDF
 - Configure main/build paths through literal `kicho.conf`, environment variables,
   and global `--main` / `--build-dir` options
 - Summarize unresolved TeX citations/references with `check --log` and `build --strict`

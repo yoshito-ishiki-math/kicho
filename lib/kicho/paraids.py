@@ -17,7 +17,7 @@ SKIP = {".git", "build", "dist", "output", "archives", "submission", "submission
 TOKEN = re.compile(r"\\([A-Za-z@]+|.)", re.S)
 SETTINGS = {"paragraphidfont", "paragraphidwidth", "paragraphnotefont", "paragraphnotewidth"}
 MARKS = {"paraid", "paranote", "ParagraphIDsOn", "ParagraphIDsOff"}
-PACKAGES = {"paragraphids", "showkeys"}
+PACKAGES = {"paragraphids", "showkeys", "kichoproof"}
 
 
 def visible_source(text: str, include_comments: bool = False) -> str:
@@ -265,13 +265,16 @@ def has_review_material(text: str) -> bool:
     # Commented markers may have been disabled after the working PDF was built.
     clean = visible_source(text, include_comments=True)
     return (any(t[1] in MARKS | SETTINGS for t in TOKEN.finditer(clean))
-            or bool(re.search(r"\b(?:paragraphids|showkeys)\b", clean)))
+            or bool(re.search(r"\b(?:paragraphids|showkeys|kichoproof)\b", clean)))
 
 
 def prepare_release(root: Path) -> bool:
     """Internal submit operation, applied only to an already-created staging copy."""
     if not root.is_dir() or not (root / "main.tex").is_file():
         raise ValueError("release preparation requires a staging directory with main.tex")
+    # Never turn proposed author corrections into accepted text during export.
+    from proofread import ensure_approved
+    ensure_approved(root)
     changes = []
     packages = []
     review = False
@@ -280,11 +283,11 @@ def prepare_release(root: Path) -> bool:
             continue
         if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError(f"refusing a symlink release source: {path}")
-        if path.name in {"paragraphids.sty", "showkeys.sty"}:
+        if path.name in {"paragraphids.sty", "showkeys.sty", "kichoproof.sty"}:
             packages.append(path)
             continue
         raw = path.read_bytes()
-        if not re.search(rb"paragraphid|paragraphnote|ParagraphIDs|\\paraid|\\paranote|showkeys", raw):
+        if not re.search(rb"paragraphid|paragraphnote|ParagraphIDs|\\paraid|\\paranote|showkeys|kichoproof", raw):
             continue
         text = raw.decode("utf-8")
         review = review or has_review_material(text)

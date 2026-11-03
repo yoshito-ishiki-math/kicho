@@ -84,7 +84,7 @@ kicho_python_available() {
 
 kicho_require_python() {
     if ! kicho_python_available; then
-        kicho_error 'Python 3.9 or later is required for paragraph-ID, archive, and submission operations.'
+        kicho_error 'Python 3.9 or later is required for paragraph-ID, proofreading, archive, and submission operations.'
         return 1
     fi
 }

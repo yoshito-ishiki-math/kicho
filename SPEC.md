@@ -32,6 +32,61 @@ Future functionality should normally be introduced as additional subcommands.
 
 ## Commands
 
+### `proofread`
+
+Track author-facing corrections as literal LaTeX commands. Requires Python 3.9+.
+
+```bash
+kicho proofread install [--root DIRECTORY]
+kicho proofread new --kind add --new 'New text' [--root DIRECTORY]
+kicho proofread new --kind delete --old 'Old text' [--root DIRECTORY]
+kicho proofread new --kind replace --old 'Old text' --new 'New text' [--root DIRECTORY]
+kicho proofread list [--root DIRECTORY]
+kicho proofread check [--root DIRECTORY]
+kicho proofread approve ID [ID ...] --author NAME [--root DIRECTORY]
+kicho proofread approve --all --author NAME [--root DIRECTORY]
+```
+
+The root defaults to the current directory. `install` copies `kichoproof.sty`
+without modifying a manuscript or overwriting a different local package. Add
+`\usepackage{kichoproof}` to the preamble explicitly. `new` prints a snippet;
+it does not insert it. IDs use `r-` and twelve random lowercase hexadecimal
+digits. Supported commands are `\kichoadd{ID}{new}`,
+`\kichodelete{ID}{old}`, and `\kichoreplace{ID}{old}{new}`.
+Pending corrections show red text and IDs in the PDF, with deletion and
+replacement distinguished explicitly. Plain text, nested groups, paragraphs,
+and inline math are supported; mark a complete display environment rather than
+putting a correction across environment boundaries. Verbatim material,
+macro-generated corrections, and nested correction commands are unsupported.
+
+`list` reports file, line, ID, and kind. `check` validates literal commands,
+balanced arguments, unique IDs, and the absence of nested corrections. Comments
+and common verbatim/listing environments are ignored. Scans exclude archives,
+build outputs, submission directories, and manifest-identified Kicho exports;
+the build exclusion honors `kicho.conf`, `KICHO_BUILD_DIR`, and global
+`--build-dir` in the same precedence as other project commands.
+Use a root containing only the current draft. Commented IDs remain reserved by
+`new`. All commands reject unsafe source paths and symbolic-link roots.
+
+`approve` is the explicit record of author approval, attributed to `--author`;
+Kicho does not authenticate this identity or infer approval from a successful
+build. It replaces only selected correction commands with their accepted text:
+additions retain new text, deletions disappear, and replacements retain new
+text. Other corrections stay red. All inputs and selected IDs must validate
+before any source is edited. Accepted arguments retain braces (deletions leave
+`{}`) to preserve local formatting scope and TeX control-word boundaries.
+Original bytes, before/after hashes, correction
+contents, author, and UTC time are preserved under
+`archives/proofread/<unique-operation>/`; existing history is never overwritten.
+Handled write failures restore edited sources from the saved originals. Rebuild
+with `kicho build` to refresh the PDF after approval.
+
+Ordinary builds and archives retain pending corrections. Both submission modes
+refuse pending or malformed corrections in staged sources; they never approve
+them automatically. After approval, submission preparation removes the unused
+proofreading package in the release copy and rebuilds standard PDFs when review
+material was present, preventing a stale red PDF from being copied.
+
 ### `paraids`
 
 Manage stable paragraph identifiers through Kicho. Kicho distributes

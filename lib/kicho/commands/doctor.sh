@@ -202,9 +202,9 @@ kicho_command_doctor() {
 
     printf '\nOptional workflow capabilities\n'
     if kicho_python_available; then
-        kicho_doctor_ok "Python 3.9+: $(command -v python3) (paragraph IDs, archives, submissions)"
+        kicho_doctor_ok "Python 3.9+: $(command -v python3) (paragraph IDs, proofreading, archives, submissions)"
     else
-        kicho_doctor_warn 'Python 3.9+ is unavailable; paragraph IDs, archives, and submissions require it.'
+        kicho_doctor_warn 'Python 3.9+ is unavailable; paragraph IDs, proofreading, archives, and submissions require it.'
         ((warnings += 1))
     fi
     if command -v zip >/dev/null 2>&1; then

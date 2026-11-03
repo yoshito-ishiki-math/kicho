@@ -1,0 +1,68 @@
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{kichoproof}[2026/11/02 v0.1 Author-approved proofreading]
+\DeclareOption*{\PackageError{kichoproof}{Unknown option `\CurrentOption'}
+  {Pending corrections cannot be hidden. Use kicho proofread approve.}}
+\ProcessOptions\relax
+\RequirePackage{color}
+
+% Approval is a source transformation performed by Kicho, never a display flag.
+\ExplSyntaxOn
+\bool_new:N \l_kichoproof_inside_bool
+\msg_new:nnn {kichoproof}{invalid-id}
+  {Invalid~correction~ID~'#1'.~Use~r-~followed~by~12~lowercase~hex~digits.}
+\msg_new:nnn {kichoproof}{nested}
+  {Nested~corrections~are~unsupported.~Approve~or~separate~the~outer~correction.}
+
+\cs_new_protected:Npn \kichoproof_begin:n #1
+  {
+    \group_begin:
+    \bool_if:NT \l_kichoproof_inside_bool
+      {\msg_error:nn {kichoproof}{nested}}
+    \bool_set_true:N \l_kichoproof_inside_bool
+    % Source-ID uniqueness belongs to `kicho proofread check`: LaTeX may
+    % legitimately typeset the same title/caption several times while measuring
+    % boxes, constructing running heads, or reading the table of contents.
+    \regex_match:nnF {\A r\-[0-9a-f]{12}\Z} {#1}
+      {\msg_error:nnn {kichoproof}{invalid-id}{#1}}
+    \color{red}
+  }
+\cs_new_protected:Npn \kichoproof_label:nn #1#2
+  {
+    \mode_if_math:F {\leavevmode}
+    \hbox{\normalfont\ttfamily\fontsize{7}{8}\selectfont [#1~#2]}
+    \kern.25em
+  }
+\NewDocumentCommand \kichoadd {m +m}
+  {
+    \kichoproof_begin:n {#1}
+    \kichoproof_label:nn {ADD}{#1}#2
+    \group_end:
+  }
+\NewDocumentCommand \kichodelete {m +m}
+  {
+    \kichoproof_begin:n {#1}
+    \kichoproof_label:nn {DEL}{#1}[#2]
+    \group_end:
+  }
+\NewDocumentCommand \kichoreplace {m +m +m}
+  {
+    \kichoproof_begin:n {#1}
+    \kichoproof_label:nn {OLD}{#1}[#2]
+    \kern.4em
+    \kichoproof_label:nn {NEW}{#1}#3
+    \group_end:
+  }
+\ExplSyntaxOff
+
+% PDF bookmarks have no color or correction formatting. Keep their accepted
+% wording; the visible headings and table of contents still show corrections.
+\AtBeginDocument{%
+  \@ifpackageloaded{hyperref}{%
+    \pdfstringdefDisableCommands{%
+      \def\kichoadd#1#2{#2}%
+      \def\kichodelete#1#2{}%
+      \def\kichoreplace#1#2#3{#3}%
+    }%
+  }{}%
+}
+\endinput

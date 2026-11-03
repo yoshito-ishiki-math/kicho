@@ -25,6 +25,7 @@ Kichoは、LaTeXによる研究プロジェクトのワークフローを管理�
 - `flatten`による、行全体を占める`\input`と`\include`コマンドの展開
 - `submit`によるローカルの投稿用パッケージ作成
 - `submit --arxiv`によるarXiv投稿用ソースZIPとメタデータ記入用ファイルの作成
+- `proofread`による修正箇所の赤字表示と著者承認後の赤字解除
 - `help COMMAND`または`COMMAND --help`によるコマンド別ヘルプの表示
 - `--help`による全体のヘルプ表示
 - `--version`によるバージョン情報の表示
@@ -238,3 +239,30 @@ kicho paraids check --root MyPaper
 ```
 
 `submit` と `submit --arxiv` は提出用コピーのID・赤字注記を無効化します。ID・注記を含む通常の提出では、注記を除いたPDFを再ビルドします。`submit --build`で、どちらの提出形式でも作業版の生成物を更新できます。Python 3.9以上が必要です。[利用方法](docs/paragraphids.md)を参照してください。
+
+## 校正用の赤字と著者承認
+
+パッケージを導入し、原稿のプリアンブルに `\usepackage{kichoproof}` を追加します。
+次の `new` が出力する修正コマンドを原稿の該当箇所へ貼り付けます。
+
+```bash
+kicho proofread install --root MyPaper
+kicho proofread new --root MyPaper --kind replace --old '元の文章' --new '修正後の文章'
+kicho proofread list --root MyPaper
+kicho proofread check --root MyPaper
+```
+
+PDFでは修正箇所がID付きの赤字になります。著者の承認を得たら、`new` または
+`list` に表示されたIDを指定して赤字を解除し、PDFを再ビルドします。
+
+```bash
+kicho proofread approve r-0123456789ab --author '著者名' --root MyPaper
+cd MyPaper
+kicho build
+```
+
+承認した箇所だけを修正後の通常本文にし、原稿の変更前の内容と承認者名を含む
+記録を `archives/proofread/` に保存します。未承認の箇所は赤字のまま残り、
+`submit` と `submit --arxiv` は未承認の修正があると停止します。
+明示的なコマンドを対象とし、TeXのマクロ展開や承認者の本人認証は行いません。
+Python 3.9以上が必要です。[利用手順と対応構文](docs/proofread.md)を参照してください。

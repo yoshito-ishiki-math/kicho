@@ -538,6 +538,32 @@ careful file-safety design.
 
 ## File-Transformation Command Design
 
+### Proofreading corrections
+
+`lib/kicho/latex/kichoproof.sty` renders literal correction commands with red
+text, correction IDs, and explicit deletion/replacement cues. The `proofread`
+command delegates package installation, snippet generation, validation, and
+approval to `lib/kicho/proofread.py`, using Python's standard library. IDs are
+independent of paragraph IDs: they identify a correction that disappears from
+the active source after approval.
+
+Approval is a source transformation rather than a display switch. A literal
+balanced-argument scanner ignores comments and known literal environments and
+rejects malformed, nested, or duplicate corrections before changing sources.
+The selected commands are replaced with accepted content; unselected commands
+remain active. Accepted argument groups are retained, including empty deletion
+groups, preserving local formatting scope and TeX control-word boundaries.
+Original bytes and a manifest containing author attribution,
+UTC time, correction contents, and before/after hashes are saved under a unique
+`archives/proofread/` operation directory. Handled write failures restore the
+saved sources. The record attributes the explicit approval command; it does
+not authenticate an author or establish mathematical correctness.
+
+Submission staging refuses remaining corrections before disabling the unused
+package. Existing release preparation and PDF rebuilding handle approved
+sources. Ordinary build and archive paths retain pending annotations, so a
+successful build cannot silently approve a change.
+
 ### Paragraph review marks
 
 `lib/kicho/latex/paragraphids.sty` is the maintained package source. The
